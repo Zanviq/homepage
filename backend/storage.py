@@ -1,6 +1,6 @@
 """File-based persistence. Every project is a folder of markdown + a meta.json.
 
-Layout (rooted at DATA_DIR, bind-mounted from /mnt/HDD/homepage):
+Layout (rooted at DATA_DIR, bind-mounted from /mnt/hdd/homepage):
 
     projects/<slug>/meta.json      metadata (titles, tags, links, ...)
     projects/<slug>/body.ko.md     Korean body

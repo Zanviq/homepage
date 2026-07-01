@@ -7,7 +7,7 @@ Raspberry Pi, exposed through a Cloudflare Tunnel.
   KO/EN toggle, markdown rendering with images.
 - **Backend** — FastAPI. File-based storage (markdown + images), JWT-cookie
   auth for a single admin.
-- **Content** — everything lives on disk at `/mnt/HDD/homepage` (bind-mounted
+- **Content** — everything lives on disk at `/mnt/hdd/homepage` (bind-mounted
   into the backend container). No database.
 
 ## Architecture
@@ -17,7 +17,7 @@ Cloudflare Tunnel (TUNNEL_TOKEN)  ->  frontend (Next.js :3000)
                                          │  /api/* rewritten to ↓
                                       backend (FastAPI :8000)
                                          │
-                                      /mnt/HDD/homepage  (markdown + images)
+                                      /mnt/hdd/homepage  (markdown + images)
 ```
 
 The tunnel points **only** at the frontend. Next.js rewrites every `/api/*`
@@ -51,8 +51,8 @@ directly and sign in with the credentials from `.env`. After login you can:
 2. Create the data directory on the Pi:
 
    ```bash
-   sudo mkdir -p /mnt/HDD/homepage
-   sudo chown -R 1000:1000 /mnt/HDD/homepage
+   sudo mkdir -p /mnt/hdd/homepage
+   sudo chown -R 1000:1000 /mnt/hdd/homepage
    ```
 
 3. In the Cloudflare Zero Trust dashboard, point the tunnel's public hostname
@@ -67,7 +67,7 @@ directly and sign in with the credentials from `.env`. After login you can:
 ## Data layout
 
 ```
-/mnt/HDD/homepage/
+/mnt/hdd/homepage/
 ├── about/
 │   ├── profile.json          name, taglines, links, avatar
 │   ├── about.ko.md
@@ -81,4 +81,4 @@ directly and sign in with the credentials from `.env`. After login you can:
         └── images/
 ```
 
-Back up the site by copying `/mnt/HDD/homepage`. That's it.
+Back up the site by copying `/mnt/hdd/homepage`. That's it.
