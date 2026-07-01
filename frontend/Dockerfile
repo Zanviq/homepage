@@ -14,6 +14,8 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
+# bind on all interfaces so the cloudflared container can reach the frontend
+ENV HOSTNAME=0.0.0.0
 
 # Next.js standalone bundle
 COPY --from=builder /app/.next/standalone ./
