@@ -1,0 +1,45 @@
+services:
+  backend:
+    build: ./backend
+    container_name: zanviq-backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+    volumes:
+      # Raspberry Pi HDD -> container. All markdown + images persist here.
+      - /mnt/HDD/homepage:/data
+    expose:
+      - "8000"
+    networks:
+      - zanviq
+
+  frontend:
+    build: ./frontend
+    container_name: zanviq-frontend
+    restart: unless-stopped
+    environment:
+      # Next.js rewrites /api/* to this internal address (see next.config.ts)
+      BACKEND_URL: http://backend:8000
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+    networks:
+      - zanviq
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: zanviq-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    depends_on:
+      - frontend
+    networks:
+      - zanviq
+
+networks:
+  zanviq:
+    driver: bridge
