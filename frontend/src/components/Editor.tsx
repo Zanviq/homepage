@@ -73,14 +73,12 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
     setError("");
     try {
       if (mode === "new") {
-        const created = await createProject(payload());
-        router.push(`/admin/projects/${created.slug}`);
-        router.refresh();
+        await createProject(payload());
       } else {
         await updateProject(slug, payload());
-        router.push("/admin");
-        router.refresh();
       }
+      router.push("/admin");
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
     } finally {
@@ -164,7 +162,7 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
               </div>
               <span className="font-mono text-[0.65rem] uppercase tracking-widest text-ink-soft">
                 {mode === "new"
-                  ? lang === "ko" ? "이미지는 저장 후 첨부" : "save to attach images"
+                  ? lang === "ko" ? "저장 후 다시 열어 이미지 첨부" : "save, then reopen to attach images"
                   : lang === "ko" ? "이미지를 끌어다 놓기" : "drag & drop images"}
               </span>
             </div>
