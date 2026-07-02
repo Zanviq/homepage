@@ -22,7 +22,7 @@ COOKIE_NAME = "zanviq_token"
 
 # Gemini (Google Generative Language API) for KO -> EN translation
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 
 def ensure_dirs() -> None:
