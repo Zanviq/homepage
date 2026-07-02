@@ -38,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko" className={`${fraunces.variable} ${spaceMono.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${spaceMono.variable}`}>
       <head>
         <link
           rel="stylesheet"
