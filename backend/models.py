@@ -12,6 +12,17 @@ class Link(BaseModel):
     url: str
 
 
+class HistoryItem(BaseModel):
+    """A single career / experience entry on the timeline."""
+    period: str = ""      # language-neutral, e.g. "2023 – 2024"
+    title_ko: str = ""
+    title_en: str = ""
+    org_ko: str = ""
+    org_en: str = ""
+    desc_ko: str = ""
+    desc_en: str = ""
+
+
 class ProjectInput(BaseModel):
     """Payload for creating / updating a project."""
     title_ko: str = ""
@@ -37,3 +48,4 @@ class ProfileInput(BaseModel):
     about_en: str = ""
     avatar: str = ""
     links: list[Link] = Field(default_factory=list)
+    history: list[HistoryItem] = Field(default_factory=list)

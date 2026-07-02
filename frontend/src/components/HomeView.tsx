@@ -120,6 +120,48 @@ export function HomeView({
         </div>
       </section>
 
+      {/* ─── HISTORY ──────────────────────────────────────────── */}
+      {(profile?.history?.length ?? 0) > 0 && (
+        <section id="history" className="border-b-2 border-ink">
+          <div className="mx-auto max-w-6xl px-5 py-16">
+            <SectionLabel>{t("history", lang)}</SectionLabel>
+            <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
+              {t("history_heading", lang)}
+            </h2>
+
+            <ol className="mt-12 border-l-2 border-ink">
+              {profile!.history.map((item, i) => {
+                const title = lang === "ko" ? item.title_ko : item.title_en;
+                const org = lang === "ko" ? item.org_ko : item.org_en;
+                const desc = lang === "ko" ? item.desc_ko : item.desc_en;
+                return (
+                  <li key={i} className="relative pb-10 pl-8 last:pb-0 sm:pl-10">
+                    {/* node marker */}
+                    <span className="absolute -left-[9px] top-1 h-4 w-4 border-2 border-ink bg-leaf" />
+                    <p className="font-mono text-xs uppercase tracking-widest text-leaf-deep">
+                      {item.period}
+                    </p>
+                    <h3 className="mt-1.5 font-display text-2xl font-semibold leading-tight">
+                      {title || org || "—"}
+                    </h3>
+                    {org && title && (
+                      <p className="mt-0.5 font-display text-lg italic text-ink-soft">
+                        {org}
+                      </p>
+                    )}
+                    {desc && (
+                      <p className="mt-2 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-ink-soft">
+                        {desc}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </section>
+      )}
+
       {/* ─── WORK ─────────────────────────────────────────────── */}
       <section id="work" className="mx-auto max-w-6xl px-5 py-16">
         <div className="mb-10 flex items-end justify-between">

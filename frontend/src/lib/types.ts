@@ -5,6 +5,16 @@ export interface Link {
   url: string;
 }
 
+export interface HistoryItem {
+  period: string;
+  title_ko: string;
+  title_en: string;
+  org_ko: string;
+  org_en: string;
+  desc_ko: string;
+  desc_en: string;
+}
+
 export interface ProjectMeta {
   slug: string;
   title_ko: string;
@@ -33,4 +43,5 @@ export interface Profile {
   about_en: string;
   avatar: string;
   links: Link[];
+  history: HistoryItem[];
 }

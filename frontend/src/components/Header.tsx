@@ -32,6 +32,12 @@ export function Header() {
           >
             {t("nav_about", lang)}
           </Link>
+          <Link
+            href="/#history"
+            className="hidden px-2 py-1 text-sm font-medium hover:text-leaf-deep sm:inline"
+          >
+            {t("nav_history", lang)}
+          </Link>
           <button
             onClick={toggle}
             aria-label="Toggle language"

@@ -7,7 +7,7 @@ import { useLang } from "./LanguageProvider";
 import { Markdown } from "./Markdown";
 import { getProfile, saveProfile, uploadProfileImage } from "@/lib/admin";
 import { t } from "@/lib/i18n";
-import type { Link as LinkT, Profile } from "@/lib/types";
+import type { HistoryItem, Link as LinkT, Profile } from "@/lib/types";
 
 export function ProfileEditor() {
   const { lang } = useLang();
@@ -138,7 +138,86 @@ export function ProfileEditor() {
         </div>
       </div>
 
+      <HistoryEditor history={profile.history ?? []} setHistory={(h) => set({ history: h })} />
+
       <LinksEditor links={profile.links} setLinks={(l) => set({ links: l })} />
+    </div>
+  );
+}
+
+function HistoryEditor({
+  history,
+  setHistory,
+}: {
+  history: HistoryItem[];
+  setHistory: (h: HistoryItem[]) => void;
+}) {
+  const { lang } = useLang();
+
+  function update(i: number, key: keyof HistoryItem, val: string) {
+    const next = [...history];
+    next[i] = { ...next[i], [key]: val };
+    setHistory(next);
+  }
+  function move(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= history.length) return;
+    const next = [...history];
+    [next[i], next[j]] = [next[j], next[i]];
+    setHistory(next);
+  }
+  function add() {
+    setHistory([
+      ...history,
+      { period: "", title_ko: "", title_en: "", org_ko: "", org_en: "", desc_ko: "", desc_en: "" },
+    ]);
+  }
+
+  return (
+    <div className="mt-6 border-2 border-ink bg-paper p-4 shadow-[6px_6px_0_0_var(--ink)]">
+      <span className="field-label">{t("history", lang)}</span>
+
+      <div className="flex flex-col gap-4">
+        {history.map((item, i) => (
+          <div key={i} className="border-2 border-ink bg-paper-2/30 p-3">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="font-mono text-xs text-ink-soft">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <input
+                className="field !py-1.5 text-sm"
+                placeholder={lang === "ko" ? "기간 (예: 2023 – 2024)" : "Period (e.g. 2023 – 2024)"}
+                value={item.period}
+                onChange={(e) => update(i, "period", e.target.value)}
+              />
+              <button onClick={() => move(i, -1)} className="btn-mini" title="up">↑</button>
+              <button onClick={() => move(i, 1)} className="btn-mini" title="down">↓</button>
+              <button
+                onClick={() => setHistory(history.filter((_, j) => j !== i))}
+                className="border-2 border-ink px-2 py-1 hover:bg-tangerine hover:text-paper"
+              >
+                <X size={13} />
+              </button>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input className="field !py-1.5 text-sm" placeholder="제목 (KO)" value={item.title_ko} onChange={(e) => update(i, "title_ko", e.target.value)} />
+              <input className="field !py-1.5 text-sm" placeholder="Title (EN)" value={item.title_en} onChange={(e) => update(i, "title_en", e.target.value)} />
+              <input className="field !py-1.5 text-sm" placeholder="소속 (KO)" value={item.org_ko} onChange={(e) => update(i, "org_ko", e.target.value)} />
+              <input className="field !py-1.5 text-sm" placeholder="Org (EN)" value={item.org_en} onChange={(e) => update(i, "org_en", e.target.value)} />
+              <textarea className="field h-16 resize-none text-sm" placeholder="설명 (KO)" value={item.desc_ko} onChange={(e) => update(i, "desc_ko", e.target.value)} />
+              <textarea className="field h-16 resize-none text-sm" placeholder="Description (EN)" value={item.desc_en} onChange={(e) => update(i, "desc_en", e.target.value)} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={add}
+        className="mt-3 w-full border-2 border-dashed border-ink py-1.5 font-mono text-xs uppercase tracking-widest hover:bg-butter/20"
+      >
+        + {lang === "ko" ? "이력 추가" : "add entry"}
+      </button>
     </div>
   );
 }

@@ -113,6 +113,13 @@
     @apply mb-1.5 block font-mono text-xs uppercase tracking-widest text-ink-soft;
   }
 
+  .btn-mini {
+    @apply border-2 border-ink px-2 py-1 font-mono text-xs leading-none transition-colors;
+  }
+  .btn-mini:hover {
+    background: var(--butter);
+  }
+
   /* Editorial markdown prose */
   .prose-zanviq {
     font-size: 1.075rem;
