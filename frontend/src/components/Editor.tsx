@@ -98,15 +98,15 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-10">
-      <div className="mb-8 flex items-center justify-between border-b-2 border-ink pb-5">
-        <h1 className="font-display text-4xl font-semibold">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border-b-2 border-ink pb-5">
+        <h1 className="font-display text-3xl font-semibold sm:text-4xl">
           {mode === "new"
             ? t("new_project", lang)
             : lang === "ko"
               ? "프로젝트 편집"
               : "Edit project"}
         </h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {mode === "edit" && (
             <button onClick={onDelete} className="btn-ghost hover:!bg-tangerine hover:!text-paper">
               <Trash2 size={14} /> {t("delete", lang)}

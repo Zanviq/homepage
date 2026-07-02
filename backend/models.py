@@ -49,3 +49,4 @@ class ProfileInput(BaseModel):
     avatar: str = ""
     links: list[Link] = Field(default_factory=list)
     history: list[HistoryItem] = Field(default_factory=list)
+    qualifications: list[HistoryItem] = Field(default_factory=list)

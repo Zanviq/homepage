@@ -44,4 +44,5 @@ export interface Profile {
   avatar: string;
   links: Link[];
   history: HistoryItem[];
+  qualifications: HistoryItem[];
 }

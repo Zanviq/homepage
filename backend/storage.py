@@ -175,6 +175,7 @@ def get_profile() -> dict:
         "avatar": meta.get("avatar", ""),
         "links": meta.get("links", []),
         "history": meta.get("history", []),
+        "qualifications": meta.get("qualifications", []),
         "about_ko": _read_text(config.ABOUT_DIR / "about.ko.md"),
         "about_en": _read_text(config.ABOUT_DIR / "about.en.md"),
     }
@@ -189,6 +190,7 @@ def save_profile(data: ProfileInput) -> dict:
         "avatar": data.avatar,
         "links": [link.model_dump() for link in data.links],
         "history": [item.model_dump() for item in data.history],
+        "qualifications": [item.model_dump() for item in data.qualifications],
     }
     (config.ABOUT_DIR / "profile.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"

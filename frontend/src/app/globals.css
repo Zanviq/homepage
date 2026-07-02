@@ -35,6 +35,7 @@
     background-color: var(--paper);
     color: var(--ink);
     font-family: var(--font-body);
+    overflow-x: hidden;
     /* subtle paper grain + dotted grid atmosphere */
     background-image:
       radial-gradient(var(--ink) 0.5px, transparent 0.5px);

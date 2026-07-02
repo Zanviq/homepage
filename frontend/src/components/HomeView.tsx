@@ -148,34 +148,62 @@ export function HomeView({
         )}
       </section>
 
-      {/* ─── HISTORY (below work, collapsible) ────────────────── */}
-      <HistorySection history={profile?.history ?? []} />
+      {/* ─── HISTORY + QUALIFICATIONS (collapsible) ───────────── */}
+      <TimelineSection
+        id="history"
+        label={t("history", lang)}
+        heading={t("history_heading", lang)}
+        items={profile?.history ?? []}
+      />
+      <TimelineSection
+        id="qualifications"
+        label={t("qualifications", lang)}
+        heading={t("qualifications_heading", lang)}
+        items={profile?.qualifications ?? []}
+        alt
+      />
     </>
   );
 }
 
-/* Collapsible career timeline. Shows the first few entries and smoothly
-   expands the rest via a grid-rows 0fr→1fr transition. */
-function HistorySection({ history }: { history: HistoryItem[] }) {
+/* Collapsible timeline section, reused for History and Qualifications.
+   Shows the first few entries and smoothly expands the rest via a
+   grid-rows 0fr→1fr transition. */
+function TimelineSection({
+  id,
+  label,
+  heading,
+  items,
+  alt = false,
+}: {
+  id: string;
+  label: string;
+  heading: string;
+  items: HistoryItem[];
+  alt?: boolean;
+}) {
   const { lang } = useLang();
   const [expanded, setExpanded] = useState(false);
 
-  if (history.length === 0) return null;
+  if (items.length === 0) return null;
 
   const VISIBLE = 3;
-  const head = history.slice(0, VISIBLE);
-  const rest = history.slice(VISIBLE);
+  const head = items.slice(0, VISIBLE);
+  const rest = items.slice(VISIBLE);
   const hasMore = rest.length > 0;
 
   return (
-    <section id="history" className="border-t-2 border-ink bg-paper-2/40">
-      <div className="mx-auto max-w-6xl px-5 py-16">
-        <SectionLabel>{t("history", lang)}</SectionLabel>
-        <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
-          {t("history_heading", lang)}
+    <section
+      id={id}
+      className={`border-t-2 border-ink ${alt ? "bg-paper" : "bg-paper-2/40"}`}
+    >
+      <div className="mx-auto max-w-6xl px-5 py-12 sm:py-16">
+        <SectionLabel>{label}</SectionLabel>
+        <h2 className="mt-3 font-display text-3xl font-semibold sm:text-5xl">
+          {heading}
         </h2>
 
-        <div className="mt-12 border-l-2 border-ink">
+        <div className="mt-8 border-l-2 border-ink sm:mt-12">
           <ol>
             {head.map((item, i) => (
               <TimelineItem key={i} item={item} lang={lang} />
@@ -216,7 +244,7 @@ function HistorySection({ history }: { history: HistoryItem[] }) {
                       ? "접기"
                       : "Collapse"
                     : lang === "ko"
-                      ? `이력 ${rest.length}개 더 보기`
+                      ? `${rest.length}개 더 보기`
                       : `Show ${rest.length} more`}
                   <ChevronDown
                     size={15}
