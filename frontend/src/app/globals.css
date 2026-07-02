@@ -214,6 +214,67 @@
   .prose-zanviq th { background: var(--butter); }
 }
 
+/* Inline markdown — keeps the host font size; headings stay same size but bold */
+.prose-inline p {
+  margin: 0;
+}
+.prose-inline p + p {
+  margin-top: 0.5em;
+}
+.prose-inline h1,
+.prose-inline h2,
+.prose-inline h3,
+.prose-inline h4,
+.prose-inline h5,
+.prose-inline h6 {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  line-height: inherit;
+  letter-spacing: normal;
+  margin: 0.2em 0 0;
+}
+.prose-inline a {
+  color: var(--leaf-deep);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-inline strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+.prose-inline em {
+  font-style: italic;
+}
+.prose-inline code {
+  font-family: var(--font-mono);
+  background: var(--paper-2);
+  border: 1px solid var(--ink);
+  padding: 0 0.25em;
+  font-size: 0.9em;
+}
+.prose-inline ul {
+  list-style: disc;
+  padding-left: 1.2em;
+  margin: 0.25em 0;
+}
+.prose-inline ol {
+  list-style: decimal;
+  padding-left: 1.2em;
+  margin: 0.25em 0;
+}
+.prose-inline li {
+  margin: 0.1em 0;
+}
+.prose-inline blockquote {
+  border-left: 3px solid var(--tangerine);
+  padding-left: 0.6em;
+  margin: 0.3em 0;
+}
+.prose-inline a code {
+  color: inherit;
+}
+
 /* staggered load reveal helper */
 .stagger > * {
   animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;

@@ -14,3 +14,16 @@ export function Markdown({ children }: { children: string }) {
     </div>
   );
 }
+
+/**
+ * Inline markdown that keeps the surrounding font size/shape — bold, italic,
+ * links, lists, and code work, but headings do NOT balloon in size. Used for
+ * short fields like timeline / qualification descriptions.
+ */
+export function MarkdownInline({ children }: { children: string }) {
+  return (
+    <div className="prose-inline">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
+    </div>
+  );
+}

@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Languages, Loader2, Save, Trash2, X } from "lucide-react";
+import { Check, ImagePlus, Languages, Loader2, Save, Trash2, X } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 import { Markdown } from "./Markdown";
+import { Selectable } from "./Selectable";
 import {
   createProject,
   deleteProject,
@@ -55,20 +56,44 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
   const [error, setError] = useState("");
   const [canTranslate, setCanTranslate] = useState(false);
   const [translating, setTranslating] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     translateAvailable().then(setCanTranslate);
   }, []);
 
-  async function onTranslate() {
+  function toggleSel(key: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  function exitSelect() {
+    setSelectMode(false);
+    setSelected(new Set());
+  }
+
+  async function onProceed() {
+    const keys = [...selected];
+    if (keys.length === 0) return;
+    const koFor = (k: string) =>
+      k === "title" ? titleKo : k === "summary" ? summaryKo : bodyKo;
+
     setTranslating(true);
     setError("");
     try {
-      const [te, se, be] = await translate([titleKo, summaryKo, bodyKo]);
-      if (titleKo.trim()) setTitleEn(te);
-      if (summaryKo.trim()) setSummaryEn(se);
-      if (bodyKo.trim()) setBodyEn(be);
-      if (bodyKo.trim()) setBodyLang("en");
+      const res = await translate(keys.map(koFor));
+      keys.forEach((k, i) => {
+        const en = res[i];
+        if (k === "title") setTitleEn(en);
+        else if (k === "summary") setSummaryEn(en);
+        else setBodyEn(en);
+      });
+      if (selected.has("body")) setBodyLang("en");
+      exitSelect();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Translation failed");
     } finally {
@@ -130,36 +155,58 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
               ? "프로젝트 편집"
               : "Edit project"}
         </h1>
-        <div className="flex flex-wrap gap-2">
-          {canTranslate && (
+        {selectMode ? (
+          <div className="flex flex-wrap gap-2">
             <button
-              onClick={onTranslate}
-              disabled={translating}
-              className="btn-ghost hover:!bg-leaf hover:!text-paper disabled:opacity-60"
-              title={lang === "ko" ? "한글 내용을 영어로 번역" : "Translate Korean to English"}
+              onClick={onProceed}
+              disabled={translating || selected.size === 0}
+              className="btn-primary disabled:opacity-50"
             >
               {translating ? (
-                <Loader2 size={14} className="animate-spin" />
+                <Loader2 size={15} className="animate-spin" />
               ) : (
-                <Languages size={14} />
+                <Check size={15} />
               )}
-              {translating ? t("translating", lang) : t("translate", lang)}
+              {lang === "ko" ? `번역 진행 (${selected.size})` : `Translate (${selected.size})`}
             </button>
-          )}
-          {mode === "edit" && (
-            <button onClick={onDelete} className="btn-ghost hover:!bg-tangerine hover:!text-paper">
-              <Trash2 size={14} /> {t("delete", lang)}
+            <button onClick={exitSelect} className="btn-ghost">
+              {t("cancel", lang)}
             </button>
-          )}
-          <button onClick={() => router.push("/admin")} className="btn-ghost">
-            {t("cancel", lang)}
-          </button>
-          <button onClick={onSave} disabled={saving} className="btn-primary disabled:opacity-60">
-            {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-            {t("save", lang)}
-          </button>
-        </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {canTranslate && (
+              <button
+                onClick={() => setSelectMode(true)}
+                className="btn-ghost hover:!bg-leaf hover:!text-paper"
+                title={lang === "ko" ? "번역할 칸을 선택" : "Pick fields to translate"}
+              >
+                <Languages size={14} /> {t("translate", lang)}
+              </button>
+            )}
+            {mode === "edit" && (
+              <button onClick={onDelete} className="btn-ghost hover:!bg-tangerine hover:!text-paper">
+                <Trash2 size={14} /> {t("delete", lang)}
+              </button>
+            )}
+            <button onClick={() => router.push("/admin")} className="btn-ghost">
+              {t("cancel", lang)}
+            </button>
+            <button onClick={onSave} disabled={saving} className="btn-primary disabled:opacity-60">
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              {t("save", lang)}
+            </button>
+          </div>
+        )}
       </div>
+
+      {selectMode && (
+        <p className="mb-6 border-2 border-leaf bg-leaf/10 px-3 py-2 text-sm">
+          {lang === "ko"
+            ? "번역할 한글 입력 칸을 클릭해 선택한 뒤 '번역 진행'을 누르세요."
+            : "Click the Korean fields you want to translate, then press Translate."}
+        </p>
+      )}
 
       {error && (
         <p className="mb-6 border-2 border-tangerine bg-tangerine/10 px-3 py-2 text-sm">{error}</p>
@@ -170,10 +217,10 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
         <div className="flex flex-col gap-6">
           {/* titles */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
+            <Selectable active={selectMode} selected={selected.has("title")} onToggle={() => toggleSel("title")}>
               <label className="field-label">제목 (KO)</label>
               <input className="field" value={titleKo} onChange={(e) => setTitleKo(e.target.value)} />
-            </div>
+            </Selectable>
             <div>
               <label className="field-label">Title (EN)</label>
               <input className="field" value={titleEn} onChange={(e) => setTitleEn(e.target.value)} />
@@ -182,10 +229,10 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
 
           {/* summaries */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
+            <Selectable active={selectMode} selected={selected.has("summary")} onToggle={() => toggleSel("summary")}>
               <label className="field-label">요약 (KO)</label>
               <textarea className="field h-20 resize-none" value={summaryKo} onChange={(e) => setSummaryKo(e.target.value)} />
-            </div>
+            </Selectable>
             <div>
               <label className="field-label">Summary (EN)</label>
               <textarea className="field h-20 resize-none" value={summaryEn} onChange={(e) => setSummaryEn(e.target.value)} />
@@ -193,6 +240,7 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
           </div>
 
           {/* body editor */}
+          <Selectable active={selectMode} selected={selected.has("body")} onToggle={() => toggleSel("body")}>
           <div className="border-2 border-ink">
             <div className="flex items-center justify-between border-b-2 border-ink bg-paper-2/50 px-3 py-2">
               <div className="flex">
@@ -212,6 +260,7 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
               uploadable={mode === "edit"}
             />
           </div>
+          </Selectable>
         </div>
 
         {/* ── side column ── */}

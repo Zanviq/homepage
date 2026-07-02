@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ArrowDownRight, ChevronDown } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 import { ProjectCard } from "./ProjectCard";
-import { Markdown } from "./Markdown";
+import { Markdown, MarkdownInline } from "./Markdown";
 import { t } from "@/lib/i18n";
 import type { HistoryItem, Profile, ProjectMeta } from "@/lib/types";
 
@@ -277,9 +277,9 @@ function TimelineItem({ item, lang }: { item: HistoryItem; lang: "ko" | "en" }) 
         <p className="mt-0.5 font-display text-lg italic text-ink-soft">{org}</p>
       )}
       {desc && (
-        <p className="mt-2 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-ink-soft">
-          {desc}
-        </p>
+        <div className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
+          <MarkdownInline>{desc}</MarkdownInline>
+        </div>
       )}
     </li>
   );

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Languages, Loader2, Save, X } from "lucide-react";
+import { Check, ImagePlus, Languages, Loader2, Save, X } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 import { Markdown } from "./Markdown";
+import { Selectable } from "./Selectable";
 import {
   getProfile,
   saveProfile,
@@ -25,6 +26,8 @@ export function ProfileEditor() {
   const [error, setError] = useState("");
   const [canTranslate, setCanTranslate] = useState(false);
   const [translating, setTranslating] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     getProfile().then(setProfile);
@@ -61,43 +64,60 @@ export function ProfileEditor() {
     }
   }
 
-  async function onTranslate() {
+  function toggleSel(key: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  function exitSelect() {
+    setSelectMode(false);
+    setSelected(new Set());
+  }
+
+  async function onProceed() {
     if (!profile) return;
+    const keys = [...selected];
+    if (keys.length === 0) return;
     const history = profile.history ?? [];
     const quals = profile.qualifications ?? [];
 
-    // Flatten every Korean field into one ordered array for a single API call.
-    const texts = [
-      profile.tagline_ko,
-      profile.about_ko,
-      ...history.flatMap((h) => [h.title_ko, h.org_ko, h.desc_ko]),
-      ...quals.flatMap((q) => [q.title_ko, q.org_ko, q.desc_ko]),
-    ];
+    const koFor = (k: string): string => {
+      if (k === "tagline") return profile.tagline_ko;
+      if (k === "about") return profile.about_ko;
+      const [pre, idx, field] = k.split(":");
+      const it = (pre === "h" ? history : quals)[Number(idx)];
+      if (!it) return "";
+      return field === "title" ? it.title_ko : field === "org" ? it.org_ko : it.desc_ko;
+    };
 
     setTranslating(true);
     setError("");
     try {
-      const r = await translate(texts);
-      let i = 0;
-      const keep = (ko: string, en: string, tr: string) => (ko.trim() ? tr : en);
-
-      const next: Profile = { ...profile };
-      next.tagline_en = keep(profile.tagline_ko, profile.tagline_en, r[i++]);
-      next.about_en = keep(profile.about_ko, profile.about_en, r[i++]);
-      next.history = history.map((h) => ({
-        ...h,
-        title_en: keep(h.title_ko, h.title_en, r[i++]),
-        org_en: keep(h.org_ko, h.org_en, r[i++]),
-        desc_en: keep(h.desc_ko, h.desc_en, r[i++]),
-      }));
-      next.qualifications = quals.map((q) => ({
-        ...q,
-        title_en: keep(q.title_ko, q.title_en, r[i++]),
-        org_en: keep(q.org_ko, q.org_en, r[i++]),
-        desc_en: keep(q.desc_ko, q.desc_en, r[i++]),
-      }));
+      const res = await translate(keys.map(koFor));
+      const next: Profile = {
+        ...profile,
+        history: history.map((h) => ({ ...h })),
+        qualifications: quals.map((q) => ({ ...q })),
+      };
+      keys.forEach((k, i) => {
+        const en = res[i];
+        if (k === "tagline") next.tagline_en = en;
+        else if (k === "about") next.about_en = en;
+        else {
+          const [pre, idx, field] = k.split(":");
+          const it = (pre === "h" ? next.history : next.qualifications)[Number(idx)];
+          if (!it) return;
+          if (field === "title") it.title_en = en;
+          else if (field === "org") it.org_en = en;
+          else it.desc_en = en;
+        }
+      });
       setProfile(next);
       setTab("en");
+      exitSelect();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Translation failed");
     } finally {
@@ -111,31 +131,49 @@ export function ProfileEditor() {
     <div className="mx-auto max-w-4xl px-5 py-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border-b-2 border-ink pb-5">
         <h1 className="font-display text-3xl font-semibold sm:text-4xl">{t("edit_profile", lang)}</h1>
-        <div className="flex flex-wrap gap-2">
-          {canTranslate && (
+        {selectMode ? (
+          <div className="flex flex-wrap gap-2">
             <button
-              onClick={onTranslate}
-              disabled={translating}
-              className="btn-ghost hover:!bg-leaf hover:!text-paper disabled:opacity-60"
-              title={lang === "ko" ? "한글 내용을 영어로 번역" : "Translate Korean to English"}
+              onClick={onProceed}
+              disabled={translating || selected.size === 0}
+              className="btn-primary disabled:opacity-50"
             >
-              {translating ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Languages size={14} />
-              )}
-              {translating ? t("translating", lang) : t("translate", lang)}
+              {translating ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+              {lang === "ko" ? `번역 진행 (${selected.size})` : `Translate (${selected.size})`}
             </button>
-          )}
-          <button onClick={() => router.push("/admin")} className="btn-ghost">
-            {t("cancel", lang)}
-          </button>
-          <button onClick={onSave} disabled={saving} className="btn-primary disabled:opacity-60">
-            {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-            {t("save", lang)}
-          </button>
-        </div>
+            <button onClick={exitSelect} className="btn-ghost">
+              {t("cancel", lang)}
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {canTranslate && (
+              <button
+                onClick={() => setSelectMode(true)}
+                className="btn-ghost hover:!bg-leaf hover:!text-paper"
+                title={lang === "ko" ? "번역할 칸을 선택" : "Pick fields to translate"}
+              >
+                <Languages size={14} /> {t("translate", lang)}
+              </button>
+            )}
+            <button onClick={() => router.push("/admin")} className="btn-ghost">
+              {t("cancel", lang)}
+            </button>
+            <button onClick={onSave} disabled={saving} className="btn-primary disabled:opacity-60">
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              {t("save", lang)}
+            </button>
+          </div>
+        )}
       </div>
+
+      {selectMode && (
+        <p className="mb-6 border-2 border-leaf bg-leaf/10 px-3 py-2 text-sm">
+          {lang === "ko"
+            ? "번역할 한글 입력 칸을 클릭해 선택한 뒤 '번역 진행'을 누르세요."
+            : "Click the Korean fields you want to translate, then press Translate."}
+        </p>
+      )}
 
       {error && <p className="mb-6 border-2 border-tangerine bg-tangerine/10 px-3 py-2 text-sm">{error}</p>}
 
@@ -174,10 +212,10 @@ export function ProfileEditor() {
             <input className="field" value={profile.name} onChange={(e) => set({ name: e.target.value })} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
+            <Selectable active={selectMode} selected={selected.has("tagline")} onToggle={() => toggleSel("tagline")}>
               <label className="field-label">태그라인 (KO)</label>
               <input className="field" value={profile.tagline_ko} onChange={(e) => set({ tagline_ko: e.target.value })} />
-            </div>
+            </Selectable>
             <div>
               <label className="field-label">Tagline (EN)</label>
               <input className="field" value={profile.tagline_en} onChange={(e) => set({ tagline_en: e.target.value })} />
@@ -187,6 +225,7 @@ export function ProfileEditor() {
       </div>
 
       {/* about markdown */}
+      <Selectable active={selectMode} selected={selected.has("about")} onToggle={() => toggleSel("about")}>
       <div className="mt-8 border-2 border-ink">
         <div className="flex border-b-2 border-ink bg-paper-2/50">
           <TabBtn active={isKo} onClick={() => setTab("ko")}>소개 KO</TabBtn>
@@ -205,17 +244,26 @@ export function ProfileEditor() {
           </div>
         </div>
       </div>
+      </Selectable>
 
       <EntryListEditor
         label={t("history", lang)}
         items={profile.history ?? []}
         setItems={(h) => set({ history: h })}
+        keyPrefix="h"
+        selectMode={selectMode}
+        selected={selected}
+        onToggle={toggleSel}
       />
 
       <EntryListEditor
         label={t("qualifications", lang)}
         items={profile.qualifications ?? []}
         setItems={(q) => set({ qualifications: q })}
+        keyPrefix="q"
+        selectMode={selectMode}
+        selected={selected}
+        onToggle={toggleSel}
       />
 
       <LinksEditor links={profile.links} setLinks={(l) => set({ links: l })} />
@@ -227,10 +275,18 @@ function EntryListEditor({
   label,
   items,
   setItems,
+  keyPrefix,
+  selectMode,
+  selected,
+  onToggle,
 }: {
   label: string;
   items: HistoryItem[];
   setItems: (h: HistoryItem[]) => void;
+  keyPrefix: string;
+  selectMode: boolean;
+  selected: Set<string>;
+  onToggle: (key: string) => void;
 }) {
   const { lang } = useLang();
 
@@ -281,11 +337,17 @@ function EntryListEditor({
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
-              <input className="field !py-1.5 text-sm" placeholder="제목 (KO)" value={item.title_ko} onChange={(e) => update(i, "title_ko", e.target.value)} />
+              <Selectable active={selectMode} selected={selected.has(`${keyPrefix}:${i}:title`)} onToggle={() => onToggle(`${keyPrefix}:${i}:title`)}>
+                <input className="field !py-1.5 text-sm" placeholder="제목 (KO)" value={item.title_ko} onChange={(e) => update(i, "title_ko", e.target.value)} />
+              </Selectable>
               <input className="field !py-1.5 text-sm" placeholder="Title (EN)" value={item.title_en} onChange={(e) => update(i, "title_en", e.target.value)} />
-              <input className="field !py-1.5 text-sm" placeholder="소속/기관 (KO)" value={item.org_ko} onChange={(e) => update(i, "org_ko", e.target.value)} />
+              <Selectable active={selectMode} selected={selected.has(`${keyPrefix}:${i}:org`)} onToggle={() => onToggle(`${keyPrefix}:${i}:org`)}>
+                <input className="field !py-1.5 text-sm" placeholder="소속/기관 (KO)" value={item.org_ko} onChange={(e) => update(i, "org_ko", e.target.value)} />
+              </Selectable>
               <input className="field !py-1.5 text-sm" placeholder="Org (EN)" value={item.org_en} onChange={(e) => update(i, "org_en", e.target.value)} />
-              <textarea className="field h-16 resize-none text-sm" placeholder="설명 (KO)" value={item.desc_ko} onChange={(e) => update(i, "desc_ko", e.target.value)} />
+              <Selectable active={selectMode} selected={selected.has(`${keyPrefix}:${i}:desc`)} onToggle={() => onToggle(`${keyPrefix}:${i}:desc`)}>
+                <textarea className="field h-16 w-full resize-none text-sm" placeholder="설명 (KO)" value={item.desc_ko} onChange={(e) => update(i, "desc_ko", e.target.value)} />
+              </Selectable>
               <textarea className="field h-16 resize-none text-sm" placeholder="Description (EN)" value={item.desc_en} onChange={(e) => update(i, "desc_en", e.target.value)} />
             </div>
           </div>
