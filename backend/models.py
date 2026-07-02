@@ -7,6 +7,12 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class TranslateRequest(BaseModel):
+    texts: list[str]
+    source: str = "ko"
+    target: str = "en"
+
+
 class Link(BaseModel):
     label: str
     url: str

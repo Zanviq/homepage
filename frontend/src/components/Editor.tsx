@@ -1,13 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Loader2, Save, Trash2, X } from "lucide-react";
+import { ImagePlus, Languages, Loader2, Save, Trash2, X } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 import { Markdown } from "./Markdown";
 import {
   createProject,
   deleteProject,
+  translate,
+  translateAvailable,
   updateProject,
   uploadProjectImage,
 } from "@/lib/admin";
@@ -51,6 +53,28 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
   const [bodyLang, setBodyLang] = useState<"ko" | "en">("ko");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [canTranslate, setCanTranslate] = useState(false);
+  const [translating, setTranslating] = useState(false);
+
+  useEffect(() => {
+    translateAvailable().then(setCanTranslate);
+  }, []);
+
+  async function onTranslate() {
+    setTranslating(true);
+    setError("");
+    try {
+      const [te, se, be] = await translate([titleKo, summaryKo, bodyKo]);
+      if (titleKo.trim()) setTitleEn(te);
+      if (summaryKo.trim()) setSummaryEn(se);
+      if (bodyKo.trim()) setBodyEn(be);
+      if (bodyKo.trim()) setBodyLang("en");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Translation failed");
+    } finally {
+      setTranslating(false);
+    }
+  }
 
   function payload(): Partial<Project> {
     return {
@@ -107,6 +131,21 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
               : "Edit project"}
         </h1>
         <div className="flex flex-wrap gap-2">
+          {canTranslate && (
+            <button
+              onClick={onTranslate}
+              disabled={translating}
+              className="btn-ghost hover:!bg-leaf hover:!text-paper disabled:opacity-60"
+              title={lang === "ko" ? "한글 내용을 영어로 번역" : "Translate Korean to English"}
+            >
+              {translating ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Languages size={14} />
+              )}
+              {translating ? t("translating", lang) : t("translate", lang)}
+            </button>
+          )}
           {mode === "edit" && (
             <button onClick={onDelete} className="btn-ghost hover:!bg-tangerine hover:!text-paper">
               <Trash2 size={14} /> {t("delete", lang)}

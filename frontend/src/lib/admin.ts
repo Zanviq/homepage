@@ -70,6 +70,31 @@ export async function uploadProjectImage(slug: string, file: File): Promise<stri
   return data.url;
 }
 
+export async function translateAvailable(): Promise<boolean> {
+  try {
+    const res = await fetch("/api/translate/available", { cache: "no-store" });
+    const data = (await res.json()) as { available: boolean };
+    return data.available;
+  } catch {
+    return false;
+  }
+}
+
+export async function translate(
+  texts: string[],
+  source = "ko",
+  target = "en",
+): Promise<string[]> {
+  const data = await json<{ translations: string[] }>(
+    await fetch("/api/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texts, source, target }),
+    }),
+  );
+  return data.translations;
+}
+
 export async function getProfile(): Promise<Profile> {
   return json(await fetch("/api/profile", { cache: "no-store" }));
 }

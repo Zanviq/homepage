@@ -12,7 +12,8 @@ from fastapi.responses import FileResponse
 import auth
 import config
 import storage
-from models import LoginRequest, ProfileInput, ProjectInput
+import translate
+from models import LoginRequest, ProfileInput, ProjectInput, TranslateRequest
 
 app = FastAPI(title="zanviq-homepage")
 
@@ -115,6 +116,23 @@ def media(rel_path: str):
         raise HTTPException(status_code=404, detail="Not found")
     media_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
     return FileResponse(path, media_type=media_type)
+
+
+@app.post("/api/translate", dependencies=[Depends(auth.require_admin)])
+def do_translate(payload: TranslateRequest):
+    try:
+        translations = translate.translate_texts(
+            payload.texts, payload.source, payload.target
+        )
+    except translate.TranslationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"translations": translations}
+
+
+@app.get("/api/translate/available")
+def translate_available():
+    """Lets the editor decide whether to show the translate button."""
+    return {"available": bool(config.GEMINI_API_KEY)}
 
 
 @app.get("/api/health")

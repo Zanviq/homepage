@@ -32,6 +32,8 @@ export const STRINGS: Dict = {
   delete: { ko: "삭제", en: "Delete" },
   cancel: { ko: "취소", en: "Cancel" },
   preview: { ko: "미리보기", en: "Preview" },
+  translate: { ko: "한→영 번역", en: "Translate KO→EN" },
+  translating: { ko: "번역 중…", en: "Translating…" },
   write: { ko: "작성", en: "Write" },
   published: { ko: "게시됨", en: "Published" },
   draft: { ko: "비공개", en: "Draft" },
