@@ -9,7 +9,7 @@ export const STRINGS: Dict = {
   about_me: { ko: "소개", en: "About" },
   nav_history: { ko: "이력", en: "History" },
   history: { ko: "이력", en: "History" },
-  history_heading: { ko: "걸어온 길", en: "The path so far" },
+  history_heading: { ko: "타임라인", en: "Timeline" },
   qualifications: { ko: "자격 사항", en: "Qualifications" },
   qualifications_heading: { ko: "자격 · 인증", en: "Certifications & credentials" },
   view_project: { ko: "프로젝트 보기", en: "View project" },
