@@ -13,6 +13,10 @@ class TranslateRequest(BaseModel):
     target: str = "en"
 
 
+class ReorderRequest(BaseModel):
+    slugs: list[str]  # project slugs in the desired display order
+
+
 class Link(BaseModel):
     label: str
     url: str

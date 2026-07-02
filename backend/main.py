@@ -13,7 +13,13 @@ import auth
 import config
 import storage
 import translate
-from models import LoginRequest, ProfileInput, ProjectInput, TranslateRequest
+from models import (
+    LoginRequest,
+    ProfileInput,
+    ProjectInput,
+    ReorderRequest,
+    TranslateRequest,
+)
 
 app = FastAPI(title="zanviq-homepage")
 
@@ -82,6 +88,12 @@ def read_project(slug: str):
 @app.post("/api/projects", dependencies=[Depends(auth.require_admin)])
 def create_project(payload: ProjectInput):
     return storage.create_project(payload)
+
+
+@app.post("/api/projects/reorder", dependencies=[Depends(auth.require_admin)])
+def reorder_projects(payload: ReorderRequest):
+    storage.reorder_projects(payload.slugs)
+    return {"ok": True}
 
 
 @app.put("/api/projects/{slug}", dependencies=[Depends(auth.require_admin)])

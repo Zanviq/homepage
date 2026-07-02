@@ -141,6 +141,18 @@ def _write_project(slug: str, meta: dict, body_ko: str, body_en: str) -> None:
     (project_dir / "body.en.md").write_text(body_en, encoding="utf-8")
 
 
+def reorder_projects(slugs: list[str]) -> None:
+    """Assign order = position for each slug, touching only meta.json."""
+    for index, slug in enumerate(slugs):
+        meta = _load_meta(slug)
+        if meta is None:
+            continue
+        meta["order"] = index
+        (_project_dir(slug) / "meta.json").write_text(
+            json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+
 def delete_project(slug: str) -> bool:
     project_dir = _project_dir(slug)
     if not project_dir.exists():

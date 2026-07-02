@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Trash2, User, LogOut, Eye, EyeOff } from "lucide-react";
+import { Pencil, Plus, Trash2, User, LogOut, Eye, EyeOff, GripVertical } from "lucide-react";
 import { AdminGuard } from "@/components/AdminGuard";
 import { useLang } from "@/components/LanguageProvider";
-import { deleteProject, listProjects, logout } from "@/lib/admin";
+import { deleteProject, listProjects, logout, reorderProjects } from "@/lib/admin";
 import { t } from "@/lib/i18n";
 import type { ProjectMeta } from "@/lib/types";
 
@@ -23,6 +23,8 @@ function Dashboard() {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectMeta[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
 
   async function load() {
     setProjects(await listProjects());
@@ -32,6 +34,30 @@ function Dashboard() {
   useEffect(() => {
     load();
   }, []);
+
+  function onDragOver(e: React.DragEvent, i: number) {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === i) return;
+    setProjects((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(dragIndex, 1);
+      next.splice(i, 0, moved);
+      return next;
+    });
+    setDragIndex(i);
+  }
+
+  async function onDragEnd() {
+    setDragIndex(null);
+    setSavingOrder(true);
+    try {
+      await reorderProjects(projects.map((p) => p.slug));
+    } catch {
+      load(); // resync from server on failure
+    } finally {
+      setSavingOrder(false);
+    }
+  }
 
   async function onDelete(slug: string, title: string) {
     if (!confirm(`${t("delete", lang)}: ${title || slug}?`)) return;
@@ -74,14 +100,30 @@ function Dashboard() {
           {t("no_projects", lang)}
         </p>
       ) : (
-        <ul className="mt-8 flex flex-col gap-3">
+        <>
+          <p className="mt-8 mb-3 flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-ink-soft">
+            <GripVertical size={13} />
+            {lang === "ko" ? "드래그해서 순서 변경" : "Drag to reorder"}
+            {savingOrder && <span className="text-leaf-deep">· {lang === "ko" ? "저장 중…" : "saving…"}</span>}
+          </p>
+          <ul className="flex flex-col gap-3">
           {projects.map((p, i) => {
             const title = lang === "ko" ? p.title_ko : p.title_en;
             return (
               <li
                 key={p.slug}
-                className="flex items-center gap-4 border-2 border-ink bg-paper p-4 transition-shadow hover:shadow-[6px_6px_0_0_var(--ink)]"
+                draggable
+                onDragStart={() => setDragIndex(i)}
+                onDragOver={(e) => onDragOver(e, i)}
+                onDragEnd={onDragEnd}
+                className={`flex items-center gap-3 border-2 border-ink bg-paper p-4 transition-shadow hover:shadow-[6px_6px_0_0_var(--ink)] sm:gap-4 ${
+                  dragIndex === i ? "opacity-50" : ""
+                }`}
               >
+                <GripVertical
+                  size={18}
+                  className="shrink-0 cursor-grab text-ink-soft active:cursor-grabbing"
+                />
                 <span className="font-mono text-sm text-ink-soft">
                   {String(i + 1).padStart(2, "0")}
                 </span>
@@ -110,7 +152,8 @@ function Dashboard() {
               </li>
             );
           })}
-        </ul>
+          </ul>
+        </>
       )}
     </div>
   );
