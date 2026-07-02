@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowDownRight } from "lucide-react";
+import { useState } from "react";
+import { ArrowDownRight, ChevronDown } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 import { ProjectCard } from "./ProjectCard";
 import { Markdown } from "./Markdown";
 import { t } from "@/lib/i18n";
-import type { Profile, ProjectMeta } from "@/lib/types";
+import type { HistoryItem, Profile, ProjectMeta } from "@/lib/types";
 
 const FALLBACK = {
   name: "Jaemin Seo",
@@ -120,48 +121,6 @@ export function HomeView({
         </div>
       </section>
 
-      {/* ─── HISTORY ──────────────────────────────────────────── */}
-      {(profile?.history?.length ?? 0) > 0 && (
-        <section id="history" className="border-b-2 border-ink">
-          <div className="mx-auto max-w-6xl px-5 py-16">
-            <SectionLabel>{t("history", lang)}</SectionLabel>
-            <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
-              {t("history_heading", lang)}
-            </h2>
-
-            <ol className="mt-12 border-l-2 border-ink">
-              {profile!.history.map((item, i) => {
-                const title = lang === "ko" ? item.title_ko : item.title_en;
-                const org = lang === "ko" ? item.org_ko : item.org_en;
-                const desc = lang === "ko" ? item.desc_ko : item.desc_en;
-                return (
-                  <li key={i} className="relative pb-10 pl-8 last:pb-0 sm:pl-10">
-                    {/* node marker */}
-                    <span className="absolute -left-[9px] top-1 h-4 w-4 border-2 border-ink bg-leaf" />
-                    <p className="font-mono text-xs uppercase tracking-widest text-leaf-deep">
-                      {item.period}
-                    </p>
-                    <h3 className="mt-1.5 font-display text-2xl font-semibold leading-tight">
-                      {title || org || "—"}
-                    </h3>
-                    {org && title && (
-                      <p className="mt-0.5 font-display text-lg italic text-ink-soft">
-                        {org}
-                      </p>
-                    )}
-                    {desc && (
-                      <p className="mt-2 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-ink-soft">
-                        {desc}
-                      </p>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-        </section>
-      )}
-
       {/* ─── WORK ─────────────────────────────────────────────── */}
       <section id="work" className="mx-auto max-w-6xl px-5 py-16">
         <div className="mb-10 flex items-end justify-between">
@@ -188,7 +147,113 @@ export function HomeView({
           </div>
         )}
       </section>
+
+      {/* ─── HISTORY (below work, collapsible) ────────────────── */}
+      <HistorySection history={profile?.history ?? []} />
     </>
+  );
+}
+
+/* Collapsible career timeline. Shows the first few entries and smoothly
+   expands the rest via a grid-rows 0fr→1fr transition. */
+function HistorySection({ history }: { history: HistoryItem[] }) {
+  const { lang } = useLang();
+  const [expanded, setExpanded] = useState(false);
+
+  if (history.length === 0) return null;
+
+  const VISIBLE = 3;
+  const head = history.slice(0, VISIBLE);
+  const rest = history.slice(VISIBLE);
+  const hasMore = rest.length > 0;
+
+  return (
+    <section id="history" className="border-t-2 border-ink bg-paper-2/40">
+      <div className="mx-auto max-w-6xl px-5 py-16">
+        <SectionLabel>{t("history", lang)}</SectionLabel>
+        <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
+          {t("history_heading", lang)}
+        </h2>
+
+        <div className="mt-12 border-l-2 border-ink">
+          <ol>
+            {head.map((item, i) => (
+              <TimelineItem key={i} item={item} lang={lang} />
+            ))}
+          </ol>
+
+          {hasMore && (
+            <>
+              {/* animated collapsible region */}
+              <div
+                className={`grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <ol
+                    className={`transition-opacity duration-500 ${
+                      expanded ? "opacity-100" : "opacity-0"
+                    }`}
+                  >
+                    {rest.map((item, i) => (
+                      <TimelineItem key={i} item={item} lang={lang} />
+                    ))}
+                  </ol>
+                </div>
+              </div>
+
+              {/* toggle sits on the timeline as its own node */}
+              <div className="relative pl-8 sm:pl-10">
+                <span className="absolute -left-[7px] top-2 h-3 w-3 rotate-45 border-2 border-ink bg-butter" />
+                <button
+                  onClick={() => setExpanded((v) => !v)}
+                  className="btn-ghost mt-1"
+                  aria-expanded={expanded}
+                >
+                  {expanded
+                    ? lang === "ko"
+                      ? "접기"
+                      : "Collapse"
+                    : lang === "ko"
+                      ? `이력 ${rest.length}개 더 보기`
+                      : `Show ${rest.length} more`}
+                  <ChevronDown
+                    size={15}
+                    className={`transition-transform duration-300 ${expanded ? "rotate-180" : ""}`}
+                  />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TimelineItem({ item, lang }: { item: HistoryItem; lang: "ko" | "en" }) {
+  const title = lang === "ko" ? item.title_ko : item.title_en;
+  const org = lang === "ko" ? item.org_ko : item.org_en;
+  const desc = lang === "ko" ? item.desc_ko : item.desc_en;
+  return (
+    <li className="relative pb-10 pl-8 last:pb-0 sm:pl-10">
+      <span className="absolute -left-[9px] top-1 h-4 w-4 border-2 border-ink bg-leaf" />
+      <p className="font-mono text-xs uppercase tracking-widest text-leaf-deep">
+        {item.period}
+      </p>
+      <h3 className="mt-1.5 font-display text-2xl font-semibold leading-tight">
+        {title || org || "—"}
+      </h3>
+      {org && title && (
+        <p className="mt-0.5 font-display text-lg italic text-ink-soft">{org}</p>
+      )}
+      {desc && (
+        <p className="mt-2 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-ink-soft">
+          {desc}
+        </p>
+      )}
+    </li>
   );
 }
 
