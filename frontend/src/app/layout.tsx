@@ -23,11 +23,11 @@ const spaceMono = Space_Mono({
 export const metadata: Metadata = {
   title: "zanviq — Jaemin Seo",
   description: "Portfolio & writing of Jaemin Seo. Builder, AI tinkerer.",
-  metadataBase: new URL("https://zanviq.dev"),
+  metadataBase: new URL("https://www.zanviq.dev"),
   openGraph: {
     title: "zanviq — Jaemin Seo",
     description: "Portfolio & writing of Jaemin Seo.",
-    url: "https://zanviq.dev",
+    url: "https://www.zanviq.dev",
     siteName: "zanviq.dev",
   },
 };

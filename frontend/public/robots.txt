@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /login
 
-Sitemap: https://zanviq.dev/sitemap.xml
+Sitemap: https://www.zanviq.dev/sitemap.xml
