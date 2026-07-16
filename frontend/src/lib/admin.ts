@@ -58,6 +58,15 @@ export async function deleteProject(slug: string): Promise<void> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
+export async function setProjectVisibility(slug: string, published: boolean): Promise<void> {
+  const res = await fetch(`/api/projects/${encodeURIComponent(slug)}/visibility`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ published }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
 export async function reorderProjects(slugs: string[]): Promise<void> {
   const res = await fetch("/api/projects/reorder", {
     method: "POST",

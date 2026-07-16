@@ -13,6 +13,7 @@ export interface HistoryItem {
   org_en: string;
   desc_ko: string;
   desc_en: string;
+  hidden?: boolean;
 }
 
 export interface ProjectMeta {

@@ -17,13 +17,17 @@ class ReorderRequest(BaseModel):
     slugs: list[str]  # project slugs in the desired display order
 
 
+class VisibilityRequest(BaseModel):
+    published: bool
+
+
 class Link(BaseModel):
     label: str
     url: str
 
 
 class HistoryItem(BaseModel):
-    """A single career / experience entry on the timeline."""
+    """A single career / experience / qualification entry on a timeline."""
     period: str = ""      # language-neutral, e.g. "2023 – 2024"
     title_ko: str = ""
     title_en: str = ""
@@ -31,6 +35,7 @@ class HistoryItem(BaseModel):
     org_en: str = ""
     desc_ko: str = ""
     desc_en: str = ""
+    hidden: bool = False  # admin can hide an individual entry from the site
 
 
 class ProjectInput(BaseModel):

@@ -141,6 +141,19 @@ def _write_project(slug: str, meta: dict, body_ko: str, body_en: str) -> None:
     (project_dir / "body.en.md").write_text(body_en, encoding="utf-8")
 
 
+def set_project_published(slug: str, published: bool) -> dict | None:
+    """Flip only the published flag in meta.json, leaving bodies untouched."""
+    meta = _load_meta(slug)
+    if meta is None:
+        return None
+    meta["published"] = published
+    meta["updated_at"] = _now()
+    (_project_dir(slug) / "meta.json").write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return meta
+
+
 def reorder_projects(slugs: list[str]) -> None:
     """Assign order = position for each slug, touching only meta.json."""
     for index, slug in enumerate(slugs):

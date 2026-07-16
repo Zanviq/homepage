@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2, User, LogOut, Eye, EyeOff, GripVertical } from "lucide-react";
 import { AdminGuard } from "@/components/AdminGuard";
 import { useLang } from "@/components/LanguageProvider";
-import { deleteProject, listProjects, logout, reorderProjects } from "@/lib/admin";
+import { deleteProject, listProjects, logout, reorderProjects, setProjectVisibility } from "@/lib/admin";
 import { t } from "@/lib/i18n";
 import type { ProjectMeta } from "@/lib/types";
 
@@ -63,6 +63,15 @@ function Dashboard() {
     if (!confirm(`${t("delete", lang)}: ${title || slug}?`)) return;
     await deleteProject(slug);
     load();
+  }
+
+  async function onToggleVisibility(slug: string, published: boolean) {
+    setProjects((prev) => prev.map((p) => (p.slug === slug ? { ...p, published } : p)));
+    try {
+      await setProjectVisibility(slug, published);
+    } catch {
+      load(); // resync on failure
+    }
   }
 
   async function onLogout() {
@@ -127,13 +136,21 @@ function Dashboard() {
                 <span className="font-mono text-sm text-ink-soft">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <span className="grid h-6 w-6 place-items-center" title={p.published ? "published" : "draft"}>
+                <button
+                  onClick={() => onToggleVisibility(p.slug, !p.published)}
+                  title={
+                    p.published
+                      ? lang === "ko" ? "표시됨 — 클릭해 숨기기" : "Visible — click to hide"
+                      : lang === "ko" ? "숨김 — 클릭해 표시" : "Hidden — click to show"
+                  }
+                  className="grid h-7 w-7 shrink-0 place-items-center border-2 border-ink transition-colors hover:bg-butter"
+                >
                   {p.published ? (
-                    <Eye size={16} className="text-leaf-deep" />
+                    <Eye size={15} className="text-leaf-deep" />
                   ) : (
-                    <EyeOff size={16} className="text-ink-soft" />
+                    <EyeOff size={15} className="text-ink-soft" />
                   )}
-                </span>
+                </button>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-display text-xl font-semibold">
                     {title || p.slug}

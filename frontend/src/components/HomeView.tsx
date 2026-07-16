@@ -185,11 +185,12 @@ function TimelineSection({
   const { lang } = useLang();
   const [expanded, setExpanded] = useState(false);
 
-  if (items.length === 0) return null;
+  const visible = items.filter((it) => !it.hidden);
+  if (visible.length === 0) return null;
 
   const VISIBLE = 3;
-  const head = items.slice(0, VISIBLE);
-  const rest = items.slice(VISIBLE);
+  const head = visible.slice(0, VISIBLE);
+  const rest = visible.slice(VISIBLE);
   const hasMore = rest.length > 0;
 
   return (

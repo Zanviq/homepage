@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ImagePlus, Languages, Loader2, Save, X } from "lucide-react";
+import { Check, Eye, EyeOff, ImagePlus, Languages, Loader2, Save, X } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 import { Markdown } from "./Markdown";
 import { Selectable } from "./Selectable";
@@ -302,10 +302,15 @@ function EntryListEditor({
     [next[i], next[j]] = [next[j], next[i]];
     setItems(next);
   }
+  function toggleHidden(i: number) {
+    const next = [...items];
+    next[i] = { ...next[i], hidden: !next[i].hidden };
+    setItems(next);
+  }
   function add() {
     setItems([
       ...items,
-      { period: "", title_ko: "", title_en: "", org_ko: "", org_en: "", desc_ko: "", desc_en: "" },
+      { period: "", title_ko: "", title_en: "", org_ko: "", org_en: "", desc_ko: "", desc_en: "", hidden: false },
     ]);
   }
 
@@ -315,7 +320,12 @@ function EntryListEditor({
 
       <div className="flex flex-col gap-4">
         {items.map((item, i) => (
-          <div key={i} className="border-2 border-ink bg-paper-2/30 p-3">
+          <div
+            key={i}
+            className={`border-2 border-ink p-3 transition-opacity ${
+              item.hidden ? "bg-paper-2/60 opacity-60" : "bg-paper-2/30"
+            }`}
+          >
             <div className="mb-2 flex items-center gap-2">
               <span className="font-mono text-xs text-ink-soft">
                 {String(i + 1).padStart(2, "0")}
@@ -326,6 +336,21 @@ function EntryListEditor({
                 value={item.period}
                 onChange={(e) => update(i, "period", e.target.value)}
               />
+              <button
+                onClick={() => toggleHidden(i)}
+                className="btn-mini shrink-0"
+                title={
+                  item.hidden
+                    ? lang === "ko" ? "숨김 — 클릭해 표시" : "Hidden — click to show"
+                    : lang === "ko" ? "표시됨 — 클릭해 숨기기" : "Visible — click to hide"
+                }
+              >
+                {item.hidden ? (
+                  <EyeOff size={13} className="text-ink-soft" />
+                ) : (
+                  <Eye size={13} className="text-leaf-deep" />
+                )}
+              </button>
               <button onClick={() => move(i, -1)} className="btn-mini shrink-0" title="up">↑</button>
               <button onClick={() => move(i, 1)} className="btn-mini shrink-0" title="down">↓</button>
               <button

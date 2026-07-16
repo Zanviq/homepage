@@ -19,6 +19,7 @@ from models import (
     ProjectInput,
     ReorderRequest,
     TranslateRequest,
+    VisibilityRequest,
 )
 
 app = FastAPI(title="zanviq-homepage")
@@ -109,6 +110,14 @@ def delete_project(slug: str):
     if not storage.delete_project(slug):
         raise HTTPException(status_code=404, detail="Project not found")
     return {"ok": True}
+
+
+@app.post("/api/projects/{slug}/visibility", dependencies=[Depends(auth.require_admin)])
+def set_project_visibility(slug: str, payload: VisibilityRequest):
+    meta = storage.set_project_published(slug, payload.published)
+    if meta is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"ok": True, "published": payload.published}
 
 
 @app.post("/api/projects/{slug}/images", dependencies=[Depends(auth.require_admin)])
