@@ -1,7 +1,7 @@
 # zanviq-homepage
 
-Personal portfolio & writing site for **portfolio.zanviq.dev** — self-hosted on
-a Raspberry Pi, exposed through a Cloudflare Tunnel.
+Personal portfolio & writing site for **www.zanviq.dev** — self-hosted on a
+Raspberry Pi, exposed through a Cloudflare Tunnel.
 
 - **Frontend** — Next.js 16 (App Router) + Tailwind, editorial/bright design,
   KO/EN toggle (English by default), markdown rendering with images.
@@ -25,11 +25,11 @@ Cloudflare Tunnel (TUNNEL_TOKEN)  ->  frontend (Next.js :3000)
 
 The tunnel points **only** at the frontend. Next.js rewrites every `/api/*`
 request to the backend over the internal Docker network, so session cookies
-stay first-party on `portfolio.zanviq.dev`.
+stay first-party on `www.zanviq.dev`.
 
 ## Editing the site
 
-There is no visible login button. Visit **`https://portfolio.zanviq.dev/login`**
+There is no visible login button. Visit **`https://www.zanviq.dev/login`**
 directly and sign in with the credentials from `.env`. After login you can:
 
 - `/admin` — dashboard: create / edit / delete projects, drag to reorder, and
@@ -65,7 +65,7 @@ directly and sign in with the credentials from `.env`. After login you can:
    ```
 
 3. In the Cloudflare Zero Trust dashboard, point the tunnel's public hostname
-   `portfolio.zanviq.dev` to `http://frontend:3000`.
+   `www.zanviq.dev` to `http://frontend:3000`.
 
 4. Build and run:
 
