@@ -7,8 +7,8 @@ Raspberry Pi, exposed through a Cloudflare Tunnel.
   KO/EN toggle (English by default), markdown rendering with images.
 - **Backend** — FastAPI. File-based storage (markdown + images), JWT-cookie
   auth for a single admin.
-- **Content** — everything lives on disk at `/mnt/hdd/homepage` (bind-mounted
-  into the backend container). No database.
+- **Content** — everything lives on disk at `/mnt/homepage` (bind-mounted into
+  the backend container). No database.
 
 The canonical origin is defined once in `frontend/src/lib/site.ts`; metadata,
 `robots.txt` and `sitemap.xml` all derive from it. Change the domain there.
@@ -20,7 +20,9 @@ Cloudflare Tunnel (TUNNEL_TOKEN)  ->  frontend (Next.js :3000)
                                          │  /api/* rewritten to ↓
                                       backend (FastAPI :8000)
                                          │
-                                      /mnt/hdd/homepage  (markdown + images)
+                                      /mnt/homepage  (markdown + images)
+                                         │  ext4 loop image on the HDD
+                                      /mnt/HDD/homepage/homepage.img
 ```
 
 The tunnel points **only** at the frontend. Next.js rewrites every `/api/*`
@@ -57,12 +59,27 @@ directly and sign in with the credentials from `.env`. After login you can:
    python -c "import secrets; print(secrets.token_hex(32))"
    ```
 
-2. Create the data directory on the Pi:
+2. Create the data volume on the Pi. The external HDD is NTFS, which has no
+   real POSIX permissions, so — as with the other services on this box — the
+   content lives in an ext4 loop image on top of it:
 
    ```bash
-   sudo mkdir -p /mnt/hdd/homepage
-   sudo chown -R 1000:1000 /mnt/hdd/homepage
+   sudo mkdir -p /mnt/HDD/homepage /mnt/homepage
+   sudo truncate -s 20G /mnt/HDD/homepage/homepage.img   # sparse
+   sudo mkfs.ext4 -L homepage /mnt/HDD/homepage/homepage.img
    ```
+
+   Then make it survive reboots by adding to `/etc/fstab`:
+
+   ```
+   /mnt/HDD/homepage/homepage.img /mnt/homepage ext4 loop,noatime,nofail,x-systemd.requires=/mnt/HDD 0 0
+   ```
+
+   ```bash
+   sudo systemctl daemon-reload && sudo mount /mnt/homepage
+   ```
+
+   The backend container runs as root, so no `chown` is needed.
 
 3. In the Cloudflare Zero Trust dashboard, point the tunnel's public hostname
    `www.zanviq.dev` to `http://frontend:3000`.
@@ -76,7 +93,7 @@ directly and sign in with the credentials from `.env`. After login you can:
 ## Data layout
 
 ```
-/mnt/hdd/homepage/
+/mnt/homepage/
 ├── about/
 │   ├── profile.json          name, taglines, links, avatar,
 │   │                         history (Timeline), qualifications
@@ -92,4 +109,5 @@ directly and sign in with the credentials from `.env`. After login you can:
         └── images/
 ```
 
-Back up the site by copying `/mnt/hdd/homepage`. That's it.
+Back up the site by copying `/mnt/homepage`, or snapshot the whole volume by
+copying `/mnt/HDD/homepage/homepage.img` while it is unmounted. That's it.

@@ -7,8 +7,10 @@ services:
     environment:
       DATA_DIR: /data
     volumes:
-      # Raspberry Pi HDD -> container. All markdown + images persist here.
-      - /mnt/hdd/homepage:/data
+      # Raspberry Pi external HDD -> container. All markdown + images persist
+      # here. /mnt/homepage is an ext4 loop image on the NTFS drive
+      # (/mnt/HDD/homepage/homepage.img), mounted via /etc/fstab.
+      - /mnt/homepage:/data
     expose:
       - "8000"
     networks:
