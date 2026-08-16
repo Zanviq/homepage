@@ -4,6 +4,7 @@ import "./globals.css";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { SITE_URL } from "@/lib/site";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -23,11 +24,11 @@ const spaceMono = Space_Mono({
 export const metadata: Metadata = {
   title: "zanviq — Jaemin Seo",
   description: "Portfolio & writing of Jaemin Seo. Builder, AI tinkerer.",
-  metadataBase: new URL("https://portfolio.zanviq.dev"),
+  metadataBase: new URL(SITE_URL),
   openGraph: {
     title: "zanviq — Jaemin Seo",
     description: "Portfolio & writing of Jaemin Seo.",
-    url: "https://portfolio.zanviq.dev",
+    url: SITE_URL,
     siteName: "zanviq.dev",
   },
 };

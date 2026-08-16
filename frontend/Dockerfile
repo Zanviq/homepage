@@ -20,6 +20,7 @@ ENV HOSTNAME=0.0.0.0
 # Next.js standalone bundle
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+# public/ holds a .gitkeep so this COPY resolves even with no static assets
 COPY --from=builder /app/public ./public
 
 EXPOSE 3000
