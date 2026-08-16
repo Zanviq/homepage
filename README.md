@@ -1,14 +1,17 @@
 # zanviq-homepage
 
-Personal portfolio & writing site for **zanviq.dev** — self-hosted on a
-Raspberry Pi, exposed through a Cloudflare Tunnel.
+Personal portfolio & writing site for **portfolio.zanviq.dev** — self-hosted on
+a Raspberry Pi, exposed through a Cloudflare Tunnel.
 
 - **Frontend** — Next.js 16 (App Router) + Tailwind, editorial/bright design,
-  KO/EN toggle, markdown rendering with images.
+  KO/EN toggle (English by default), markdown rendering with images.
 - **Backend** — FastAPI. File-based storage (markdown + images), JWT-cookie
   auth for a single admin.
 - **Content** — everything lives on disk at `/mnt/hdd/homepage` (bind-mounted
   into the backend container). No database.
+
+The canonical origin is defined once in `frontend/src/lib/site.ts`; metadata,
+`robots.txt` and `sitemap.xml` all derive from it. Change the domain there.
 
 ## Architecture
 
@@ -22,16 +25,21 @@ Cloudflare Tunnel (TUNNEL_TOKEN)  ->  frontend (Next.js :3000)
 
 The tunnel points **only** at the frontend. Next.js rewrites every `/api/*`
 request to the backend over the internal Docker network, so session cookies
-stay first-party on `zanviq.dev`.
+stay first-party on `portfolio.zanviq.dev`.
 
 ## Editing the site
 
-There is no visible login button. Visit **`https://zanviq.dev/login`**
+There is no visible login button. Visit **`https://portfolio.zanviq.dev/login`**
 directly and sign in with the credentials from `.env`. After login you can:
 
-- `/admin` — dashboard: create / edit / delete projects
-- `/admin/profile` — edit the About section, avatar, tagline, links
+- `/admin` — dashboard: create / edit / delete projects, drag to reorder, and
+  toggle per-project visibility with the eye icon (unpublished projects stay
+  visible to you, hidden from the public site and the sitemap)
+- `/admin/profile` — edit the About section, avatar, tagline, links, plus the
+  Timeline and Qualifications entries (each item individually hideable)
 - In-browser markdown editor with live preview and drag-and-drop image upload
+- **Translate** button — KO → EN via Gemini, field by field. Only appears when
+  `GEMINI_API_KEY` is set in `.env`.
 
 ## Setup
 
@@ -40,6 +48,7 @@ directly and sign in with the credentials from `.env`. After login you can:
    ```bash
    cp .env.example .env
    # set TUNNEL_TOKEN, ADMIN_USERNAME, ADMIN_PASSWORD, JWT_SECRET
+   # optional: GEMINI_API_KEY to enable the KO -> EN translate button
    ```
 
    Generate a strong `JWT_SECRET`:
@@ -56,7 +65,7 @@ directly and sign in with the credentials from `.env`. After login you can:
    ```
 
 3. In the Cloudflare Zero Trust dashboard, point the tunnel's public hostname
-   `zanviq.dev` (and `www`) to `http://frontend:3000`.
+   `portfolio.zanviq.dev` to `http://frontend:3000`.
 
 4. Build and run:
 
@@ -69,13 +78,15 @@ directly and sign in with the credentials from `.env`. After login you can:
 ```
 /mnt/hdd/homepage/
 ├── about/
-│   ├── profile.json          name, taglines, links, avatar
+│   ├── profile.json          name, taglines, links, avatar,
+│   │                         history (Timeline), qualifications
 │   ├── about.ko.md
 │   ├── about.en.md
 │   └── images/
 └── projects/
     └── <slug>/
-        ├── meta.json         titles, summaries, tags, links, cover, ...
+        ├── meta.json         titles, summaries, tags, links, cover,
+        │                     published, order, timestamps
         ├── body.ko.md
         ├── body.en.md
         └── images/
