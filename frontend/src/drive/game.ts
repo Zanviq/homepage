@@ -338,6 +338,16 @@ export class Game {
     this.composer.addPass(new RenderPass(s, this.camera));
     this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.32, 0.55, 0.92);
     this.bloom.enabled = high;
+    // Firefly guard: a single over-bright or NaN pixel (a specular glint on a
+    // thin pole, say) must not bloom into a big halo.
+    const hp = this.bloom.materialHighPassFilter;
+    hp.fragmentShader = hp.fragmentShader.replace(
+      "vec4 texel = texture2D( tDiffuse, vUv );",
+      `vec4 texel = texture2D( tDiffuse, vUv );
+      if ( any( isnan( texel.rgb ) ) || any( isinf( texel.rgb ) ) ) texel.rgb = vec3( 0.0 );
+      texel.rgb = min( texel.rgb, vec3( 2.5 ) );`,
+    );
+    hp.needsUpdate = true;
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
 

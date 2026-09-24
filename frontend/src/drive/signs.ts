@@ -142,9 +142,11 @@ export interface SignSystem {
   ready: Promise<void>;
 }
 
-const metalMat = new THREE.MeshStandardMaterial({ color: "#7f868d", metalness: 0.7, roughness: 0.45 });
-const backMat = new THREE.MeshStandardMaterial({ color: "#8d949a", metalness: 0.55, roughness: 0.5 });
-const darkMetal = new THREE.MeshStandardMaterial({ color: "#3a3f45", metalness: 0.6, roughness: 0.5 });
+// Galvanised steel is dull: thin, shiny poles catch the low sun as tiny
+// over-bright specks that bloom into halos, so keep these fairly rough.
+const metalMat = new THREE.MeshStandardMaterial({ color: "#8a9096", metalness: 0.4, roughness: 0.68 });
+const backMat = new THREE.MeshStandardMaterial({ color: "#8d949a", metalness: 0.35, roughness: 0.66 });
+const darkMetal = new THREE.MeshStandardMaterial({ color: "#3a3f45", metalness: 0.4, roughness: 0.64 });
 
 function facePanel(face: SignFace, w: number, h: number, depth = 0.14): THREE.Mesh {
   const geo = new THREE.BoxGeometry(w, h, depth);

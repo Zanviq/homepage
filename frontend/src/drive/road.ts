@@ -75,7 +75,10 @@ export function buildRoadSurface(track: Track, tex: RoadTextures): THREE.Mesh {
         `#include <map_fragment>
         float lat = abs(vRoad.x);
         // two worn wheel paths per lane: darker and a little smoother
-        float path = exp(-pow((lat - 0.85) / 0.35, 2.0)) + exp(-pow((lat - 2.75) / 0.35, 2.0));
+        // (x*x rather than pow(x, 2.0): pow of a negative base is undefined in GLSL)
+        float p1 = (lat - 0.85) / 0.35;
+        float p2 = (lat - 2.75) / 0.35;
+        float path = exp(-p1 * p1) + exp(-p2 * p2);
         float grime = 0.5 + 0.5 * sin(vRoad.y * 0.071) * sin(vRoad.y * 0.013 + 1.3);
         diffuseColor.rgb *= 1.0 - path * 0.16 + smoothstep(3.7, 4.3, lat) * 0.08;
         diffuseColor.rgb *= 0.92 + grime * 0.1;`,
@@ -83,7 +86,7 @@ export function buildRoadSurface(track: Track, tex: RoadTextures): THREE.Mesh {
       .replace(
         "#include <roughnessmap_fragment>",
         `#include <roughnessmap_fragment>
-        roughnessFactor *= 1.0 - 0.18 * (exp(-pow((abs(vRoad.x) - 0.85) / 0.35, 2.0)) + exp(-pow((abs(vRoad.x) - 2.75) / 0.35, 2.0)));`,
+        roughnessFactor *= 1.0 - 0.18 * path;`,
       );
   };
   const mesh = new THREE.Mesh(geo, mat);
@@ -250,7 +253,7 @@ export function buildGuardrails(
     const postGeo = new THREE.BoxGeometry(0.12, 0.92, 0.16);
     const posts = new THREE.InstancedMesh(
       postGeo,
-      new THREE.MeshStandardMaterial({ color: "#6c7178", metalness: 0.6, roughness: 0.5 }),
+      new THREE.MeshStandardMaterial({ color: "#6c7178", metalness: 0.4, roughness: 0.65 }),
       postMatrices.length,
     );
     postMatrices.forEach((m, k) => posts.setMatrixAt(k, m));
@@ -355,7 +358,7 @@ export function buildStreetLights(
   const group = new THREE.Group();
   const poles = new THREE.InstancedMesh(
     metal,
-    new THREE.MeshStandardMaterial({ color: "#8a9096", metalness: 0.7, roughness: 0.42 }),
+    new THREE.MeshStandardMaterial({ color: "#8a9096", metalness: 0.45, roughness: 0.62 }),
     mats.length,
   );
   const lampMaterial = new THREE.MeshStandardMaterial({
