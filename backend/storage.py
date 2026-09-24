@@ -247,6 +247,39 @@ def resolve_media(rel_path: str) -> Path | None:
     return candidate
 
 
+THUMB_SOURCE_TYPES = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+
+
+def thumbnail(path: Path, width: int) -> Path | None:
+    """Return a cached WebP copy of `path` at most `width` px wide.
+
+    Returns None for formats that shouldn't be rasterised (e.g. SVG), in which
+    case the caller serves the original. The cache key includes the source
+    mtime, so replacing an image invalidates its thumbnails.
+    """
+    if path.suffix.lower() not in THUMB_SOURCE_TYPES:
+        return None
+    from PIL import Image  # imported lazily: only thumbnail requests need it
+
+    rel = path.relative_to(config.DATA_DIR.resolve()).as_posix()
+    key = re.sub(r"[^A-Za-z0-9._-]", "_", rel)
+    thumbs = config.DATA_DIR / ".cache" / "thumbs"
+    target = thumbs / f"{key}-{path.stat().st_mtime_ns}-{width}.webp"
+    if target.exists():
+        return target
+
+    thumbs.mkdir(parents=True, exist_ok=True)
+    with Image.open(path) as img:
+        img.seek(0)  # first frame of animated GIF/WebP
+        img = img.convert("RGBA" if img.mode in ("RGBA", "LA", "P") else "RGB")
+        if img.width > width:
+            img.thumbnail((width, width * 8), Image.LANCZOS)
+        tmp = target.with_suffix(".tmp")
+        img.save(tmp, "WEBP", quality=80, method=4)
+    tmp.replace(target)
+    return target
+
+
 # ── helpers ─────────────────────────────────────────────────────────────────
 
 def _safe_filename(filename: str) -> str:

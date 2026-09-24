@@ -42,3 +42,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Local browser-automation artifacts
+.playwright-mcp/

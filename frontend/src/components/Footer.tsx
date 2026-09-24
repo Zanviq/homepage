@@ -1,9 +1,12 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useLang } from "./LanguageProvider";
 
 export function Footer() {
   const { lang } = useLang();
+  const pathname = usePathname();
+  if (pathname?.startsWith("/drive")) return null;
   const year = new Date().getFullYear();
 
   return (

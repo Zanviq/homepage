@@ -4,3 +4,4 @@ python-multipart==0.0.20
 pyjwt==2.10.1
 python-dotenv==1.0.1
 pydantic==2.10.4
+pillow==11.3.0

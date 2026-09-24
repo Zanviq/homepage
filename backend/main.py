@@ -137,11 +137,25 @@ async def upload_project_image(slug: str, file: UploadFile = File(...)):
 
 # ── Media (public read) ─────────────────────────────────────────────────────
 
+THUMB_WIDTHS = {256, 512, 1024}
+
+
 @app.get("/api/media/{rel_path:path}")
-def media(rel_path: str):
+def media(rel_path: str, w: int | None = None):
+    """Serve an uploaded file; `?w=256|512|1024` returns a resized WebP copy."""
     path = storage.resolve_media(rel_path)
     if path is None:
         raise HTTPException(status_code=404, detail="Not found")
+    if w is not None:
+        if w not in THUMB_WIDTHS:
+            raise HTTPException(status_code=400, detail="w must be 256, 512 or 1024")
+        thumb = storage.thumbnail(path, w)
+        if thumb is not None:
+            return FileResponse(
+                thumb,
+                media_type="image/webp",
+                headers={"Cache-Control": "public, max-age=86400"},
+            )
     media_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
     return FileResponse(path, media_type=media_type)
 

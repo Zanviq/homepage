@@ -8,6 +8,7 @@ export const STRINGS: Dict = {
   selected_work: { ko: "선정 작업", en: "Selected Work" },
   about_me: { ko: "소개", en: "About" },
   nav_history: { ko: "이력", en: "History" },
+  nav_drive: { ko: "운전", en: "Drive" },
   history: { ko: "이력", en: "History" },
   history_heading: { ko: "타임라인", en: "Timeline" },
   qualifications: { ko: "자격 사항", en: "Qualifications" },

@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useLang } from "./LanguageProvider";
 import { t } from "@/lib/i18n";
 
 export function Header() {
   const { lang, toggle } = useLang();
+  const pathname = usePathname();
+
+  // The drive page is a full-screen game with its own HUD.
+  if (pathname?.startsWith("/drive")) return null;
 
   return (
     <header className="sticky top-0 z-50 border-b-2 border-ink bg-paper/90 backdrop-blur">
@@ -38,6 +43,13 @@ export function Header() {
           >
             {t("nav_history", lang)}
           </Link>
+          <Link
+            href="/drive"
+            className="ml-1 flex items-center gap-1.5 border-2 border-ink bg-tangerine px-2.5 py-1 text-sm font-semibold text-paper shadow-[3px_3px_0_0_var(--ink)] transition-transform hover:-translate-y-0.5 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+          >
+            <SteeringMark />
+            {t("nav_drive", lang)}
+          </Link>
           <button
             onClick={toggle}
             aria-label="Toggle language"
@@ -57,6 +69,16 @@ export function Header() {
         </nav>
       </div>
     </header>
+  );
+}
+
+function SteeringMark() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" />
+      <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+      <path d="M3.5 10.5h6.3M14.2 10.5h6.3M12 14.2V21" stroke="currentColor" strokeWidth="2.4" />
+    </svg>
   );
 }
 

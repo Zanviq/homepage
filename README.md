@@ -29,6 +29,26 @@ The tunnel points **only** at the frontend. Next.js rewrites every `/api/*`
 request to the backend over the internal Docker network, so session cookies
 stay first-party on `www.zanviq.dev`.
 
+## Drive (`/drive`)
+
+The **Drive** button in the header opens a full-screen driving game built
+with three.js from the same content: the start gantry carries the name and
+tagline, blue gantries and roadside plates are the timeline by year, project
+covers sit on billboards, and the lakeside lookout holds the About text.
+Drive up to a sign and press **E** (or tap the prompt) to read it.
+
+- Code: `frontend/src/drive/` (world, physics, audio, effects) and
+  `frontend/src/components/drive/` (HUD, menus, touch controls).
+- Assets: `frontend/public/drive-assets/` — the car is the Ferrari 458 Italia
+  model by vicent091036 from the three.js examples (Draco-compressed glTF);
+  ground textures are Poly Haven (CC0), resized to 512–1024 px.
+- Covers are loaded as `/api/media/...?w=1024` — the backend serves cached
+  WebP thumbnails for `?w=256|512|1024` (Pillow, cached under
+  `/data/.cache/thumbs`).
+- Keyboard (WASD/arrows, Space, E, C, R, Tab, Esc), gamepads and on-screen
+  touch controls are supported; quality is auto-picked and resolution adapts
+  to the frame rate.
+
 ## Editing the site
 
 There is no visible login button. Visit **`https://www.zanviq.dev/login`**
