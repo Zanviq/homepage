@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Eye, EyeOff, ImagePlus, Languages, Loader2, Save, X } from "lucide-react";
+import { Eye, EyeOff, ImagePlus, Languages, Loader2, Save, X } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 import { Markdown } from "./Markdown";
-import { Selectable } from "./Selectable";
+import { TranslateDialog } from "./TranslateDialog";
 import {
   getProfile,
   saveProfile,
@@ -14,6 +14,14 @@ import {
   uploadProfileImage,
 } from "@/lib/admin";
 import { t } from "@/lib/i18n";
+import {
+  blockUnits,
+  blocksAligned,
+  blocksFor,
+  mergeBlocks,
+  splitBlocks,
+  type TranslateUnit,
+} from "@/lib/translation";
 import type { HistoryItem, Link as LinkT, Profile } from "@/lib/types";
 
 export function ProfileEditor() {
@@ -26,8 +34,7 @@ export function ProfileEditor() {
   const [error, setError] = useState("");
   const [canTranslate, setCanTranslate] = useState(false);
   const [translating, setTranslating] = useState(false);
-  const [selectMode, setSelectMode] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     getProfile().then(setProfile);
@@ -64,60 +71,69 @@ export function ProfileEditor() {
     }
   }
 
-  function toggleSel(key: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
+  const ko = lang === "ko";
+  const aboutGroup = ko ? "소개" : "About";
+
+  function translateUnits(p: Profile): TranslateUnit[] {
+    const entries = (items: HistoryItem[], prefix: string, section: string) =>
+      items.flatMap((it, i) => {
+        const group = `${section} ${String(i + 1).padStart(2, "0")} · ${it.title_ko || it.period || "—"}`;
+        return [
+          { key: `${prefix}:${i}:title`, group, label: ko ? "제목" : "Title", source: it.title_ko, target: it.title_en },
+          { key: `${prefix}:${i}:org`, group, label: ko ? "소속/기관" : "Org", source: it.org_ko, target: it.org_en },
+          { key: `${prefix}:${i}:desc`, group, label: ko ? "설명" : "Description", source: it.desc_ko, target: it.desc_en },
+        ];
+      });
+    return [
+      { key: "tagline", group: ko ? "기본 정보" : "Basics", label: ko ? "태그라인" : "Tagline", source: p.tagline_ko, target: p.tagline_en },
+      ...blockUnits("about", aboutGroup, p.about_ko, p.about_en),
+      ...entries(p.history ?? [], "h", t("history", lang)),
+      ...entries(p.qualifications ?? [], "q", t("qualifications", lang)),
+    ];
   }
 
-  function exitSelect() {
-    setSelectMode(false);
-    setSelected(new Set());
-  }
-
-  async function onProceed() {
-    if (!profile) return;
-    const keys = [...selected];
-    if (keys.length === 0) return;
-    const history = profile.history ?? [];
-    const quals = profile.qualifications ?? [];
-
-    const koFor = (k: string): string => {
-      if (k === "tagline") return profile.tagline_ko;
-      if (k === "about") return profile.about_ko;
-      const [pre, idx, field] = k.split(":");
-      const it = (pre === "h" ? history : quals)[Number(idx)];
-      if (!it) return "";
-      return field === "title" ? it.title_ko : field === "org" ? it.org_ko : it.desc_ko;
+  function translateNotes(p: Profile): Record<string, string> {
+    if (blocksAligned(p.about_ko, p.about_en)) return {};
+    const n = splitBlocks(p.about_ko).length;
+    const m = splitBlocks(p.about_en).length;
+    return {
+      [aboutGroup]: ko
+        ? `한글 소개(${n}문단)와 영문 소개(${m}문단)의 문단 수가 달라 짝이 맞지 않습니다. 선택하지 않은 문단은 같은 순서의 영문 문단으로 채워지니, 결과를 확인하거나 소개 전체를 번역하세요.`
+        : `The KO about text has ${n} blocks but EN has ${m}, so they don't pair up. Unselected blocks keep the EN block at the same position — review the result, or translate the whole section.`,
     };
+  }
 
+  async function onTranslate(keys: string[]) {
+    if (!profile) return;
+    const units = new Map(translateUnits(profile).map((u) => [u.key, u]));
     setTranslating(true);
     setError("");
     try {
-      const res = await translate(keys.map(koFor));
+      const res = await translate(keys.map((k) => units.get(k)!.source));
+      const results = new Map(keys.map((k, i) => [k, res[i]]));
       const next: Profile = {
         ...profile,
-        history: history.map((h) => ({ ...h })),
-        qualifications: quals.map((q) => ({ ...q })),
+        history: (profile.history ?? []).map((h) => ({ ...h })),
+        qualifications: (profile.qualifications ?? []).map((q) => ({ ...q })),
       };
-      keys.forEach((k, i) => {
-        const en = res[i];
-        if (k === "tagline") next.tagline_en = en;
-        else if (k === "about") next.about_en = en;
-        else {
-          const [pre, idx, field] = k.split(":");
-          const it = (pre === "h" ? next.history : next.qualifications)[Number(idx)];
-          if (!it) return;
-          if (field === "title") it.title_en = en;
-          else if (field === "org") it.org_en = en;
-          else it.desc_en = en;
+      const about = blocksFor("about", results);
+      if (about.size > 0) next.about_en = mergeBlocks(profile.about_ko, profile.about_en, about);
+      for (const [k, en] of results) {
+        if (k === "tagline") {
+          next.tagline_en = en;
+          continue;
         }
-      });
+        const [pre, idx, field] = k.split(":");
+        if (pre !== "h" && pre !== "q") continue;
+        const it = (pre === "h" ? next.history : next.qualifications)[Number(idx)];
+        if (!it) continue;
+        if (field === "title") it.title_en = en;
+        else if (field === "org") it.org_en = en;
+        else it.desc_en = en;
+      }
       setProfile(next);
-      setTab("en");
-      exitSelect();
+      if (about.size > 0) setTab("en");
+      setPickerOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Translation failed");
     } finally {
@@ -131,27 +147,12 @@ export function ProfileEditor() {
     <div className="mx-auto max-w-4xl px-5 py-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border-b-2 border-ink pb-5">
         <h1 className="font-display text-3xl font-semibold sm:text-4xl">{t("edit_profile", lang)}</h1>
-        {selectMode ? (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={onProceed}
-              disabled={translating || selected.size === 0}
-              className="btn-primary disabled:opacity-50"
-            >
-              {translating ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
-              {lang === "ko" ? `번역 진행 (${selected.size})` : `Translate (${selected.size})`}
-            </button>
-            <button onClick={exitSelect} className="btn-ghost">
-              {t("cancel", lang)}
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
             {canTranslate && (
               <button
-                onClick={() => setSelectMode(true)}
+                onClick={() => setPickerOpen(true)}
                 className="btn-ghost hover:!bg-leaf hover:!text-paper"
-                title={lang === "ko" ? "번역할 칸을 선택" : "Pick fields to translate"}
+                title={ko ? "번역할 항목을 골라 한→영 번역" : "Pick what to translate KO→EN"}
               >
                 <Languages size={14} /> {t("translate", lang)}
               </button>
@@ -163,16 +164,17 @@ export function ProfileEditor() {
               {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
               {t("save", lang)}
             </button>
-          </div>
-        )}
+        </div>
       </div>
 
-      {selectMode && (
-        <p className="mb-6 border-2 border-leaf bg-leaf/10 px-3 py-2 text-sm">
-          {lang === "ko"
-            ? "번역할 한글 입력 칸을 클릭해 선택한 뒤 '번역 진행'을 누르세요."
-            : "Click the Korean fields you want to translate, then press Translate."}
-        </p>
+      {pickerOpen && (
+        <TranslateDialog
+          units={translateUnits(profile)}
+          notes={translateNotes(profile)}
+          busy={translating}
+          onCancel={() => setPickerOpen(false)}
+          onConfirm={onTranslate}
+        />
       )}
 
       {error && <p className="mb-6 border-2 border-tangerine bg-tangerine/10 px-3 py-2 text-sm">{error}</p>}
@@ -212,10 +214,10 @@ export function ProfileEditor() {
             <input className="field" value={profile.name} onChange={(e) => set({ name: e.target.value })} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Selectable active={selectMode} selected={selected.has("tagline")} onToggle={() => toggleSel("tagline")}>
+            <div>
               <label className="field-label">태그라인 (KO)</label>
               <input className="field" value={profile.tagline_ko} onChange={(e) => set({ tagline_ko: e.target.value })} />
-            </Selectable>
+            </div>
             <div>
               <label className="field-label">Tagline (EN)</label>
               <input className="field" value={profile.tagline_en} onChange={(e) => set({ tagline_en: e.target.value })} />
@@ -225,7 +227,6 @@ export function ProfileEditor() {
       </div>
 
       {/* about markdown */}
-      <Selectable active={selectMode} selected={selected.has("about")} onToggle={() => toggleSel("about")}>
       <div className="mt-8 border-2 border-ink">
         <div className="flex border-b-2 border-ink bg-paper-2/50">
           <TabBtn active={isKo} onClick={() => setTab("ko")}>소개 KO</TabBtn>
@@ -244,26 +245,17 @@ export function ProfileEditor() {
           </div>
         </div>
       </div>
-      </Selectable>
 
       <EntryListEditor
         label={t("history", lang)}
         items={profile.history ?? []}
         setItems={(h) => set({ history: h })}
-        keyPrefix="h"
-        selectMode={selectMode}
-        selected={selected}
-        onToggle={toggleSel}
       />
 
       <EntryListEditor
         label={t("qualifications", lang)}
         items={profile.qualifications ?? []}
         setItems={(q) => set({ qualifications: q })}
-        keyPrefix="q"
-        selectMode={selectMode}
-        selected={selected}
-        onToggle={toggleSel}
       />
 
       <LinksEditor links={profile.links} setLinks={(l) => set({ links: l })} />
@@ -275,18 +267,10 @@ function EntryListEditor({
   label,
   items,
   setItems,
-  keyPrefix,
-  selectMode,
-  selected,
-  onToggle,
 }: {
   label: string;
   items: HistoryItem[];
   setItems: (h: HistoryItem[]) => void;
-  keyPrefix: string;
-  selectMode: boolean;
-  selected: Set<string>;
-  onToggle: (key: string) => void;
 }) {
   const { lang } = useLang();
 
@@ -362,17 +346,11 @@ function EntryListEditor({
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
-              <Selectable active={selectMode} selected={selected.has(`${keyPrefix}:${i}:title`)} onToggle={() => onToggle(`${keyPrefix}:${i}:title`)}>
-                <input className="field !py-1.5 text-sm" placeholder="제목 (KO)" value={item.title_ko} onChange={(e) => update(i, "title_ko", e.target.value)} />
-              </Selectable>
+              <input className="field !py-1.5 text-sm" placeholder="제목 (KO)" value={item.title_ko} onChange={(e) => update(i, "title_ko", e.target.value)} />
               <input className="field !py-1.5 text-sm" placeholder="Title (EN)" value={item.title_en} onChange={(e) => update(i, "title_en", e.target.value)} />
-              <Selectable active={selectMode} selected={selected.has(`${keyPrefix}:${i}:org`)} onToggle={() => onToggle(`${keyPrefix}:${i}:org`)}>
-                <input className="field !py-1.5 text-sm" placeholder="소속/기관 (KO)" value={item.org_ko} onChange={(e) => update(i, "org_ko", e.target.value)} />
-              </Selectable>
+              <input className="field !py-1.5 text-sm" placeholder="소속/기관 (KO)" value={item.org_ko} onChange={(e) => update(i, "org_ko", e.target.value)} />
               <input className="field !py-1.5 text-sm" placeholder="Org (EN)" value={item.org_en} onChange={(e) => update(i, "org_en", e.target.value)} />
-              <Selectable active={selectMode} selected={selected.has(`${keyPrefix}:${i}:desc`)} onToggle={() => onToggle(`${keyPrefix}:${i}:desc`)}>
-                <textarea className="field h-16 w-full resize-none text-sm" placeholder="설명 (KO)" value={item.desc_ko} onChange={(e) => update(i, "desc_ko", e.target.value)} />
-              </Selectable>
+              <textarea className="field h-16 w-full resize-none text-sm" placeholder="설명 (KO)" value={item.desc_ko} onChange={(e) => update(i, "desc_ko", e.target.value)} />
               <textarea className="field h-16 resize-none text-sm" placeholder="Description (EN)" value={item.desc_en} onChange={(e) => update(i, "desc_en", e.target.value)} />
             </div>
           </div>

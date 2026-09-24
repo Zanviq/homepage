@@ -1,12 +1,13 @@
 """zanviq-homepage backend — FastAPI.
 
 Public read endpoints serve the site; write endpoints require the admin
-session cookie issued at /api/auth/login. Content is stored as markdown +
+session cookie issued at /api/auth/login, or `Authorization: Bearer
+<ADMIN_API_TOKEN>` for the content CLI (tools/zanviq.mjs). Content is stored as markdown +
 images on disk (see storage.py).
 """
 import mimetypes
 
-from fastapi import Cookie, Depends, FastAPI, File, HTTPException, Response, UploadFile
+from fastapi import Cookie, Depends, FastAPI, File, Header, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse
 
 import auth
@@ -47,9 +48,12 @@ def logout(response: Response):
 
 
 @app.get("/api/auth/session")
-def session(zanviq_token: str | None = Cookie(default=None)):
+def session(
+    zanviq_token: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
+):
     """Lightweight check so the frontend knows whether to show the editor UI."""
-    return {"authenticated": auth.is_authenticated(zanviq_token)}
+    return {"authenticated": auth.is_admin(zanviq_token, authorization)}
 
 
 # ── Profile / About ─────────────────────────────────────────────────────────
@@ -73,8 +77,11 @@ async def upload_profile_image(file: UploadFile = File(...)):
 # ── Projects ────────────────────────────────────────────────────────────────
 
 @app.get("/api/projects")
-def list_projects(zanviq_token: str | None = Cookie(default=None)):
-    include_unpublished = auth.is_authenticated(zanviq_token)
+def list_projects(
+    zanviq_token: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
+):
+    include_unpublished = auth.is_admin(zanviq_token, authorization)
     return storage.list_projects(include_unpublished=include_unpublished)
 
 

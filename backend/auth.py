@@ -1,9 +1,13 @@
-"""JWT-cookie authentication for the single admin account."""
+"""Authentication for the single admin account.
+
+Browsers use a JWT session cookie; the content CLI uses a static bearer token
+(ADMIN_API_TOKEN). Either one grants full admin rights.
+"""
 import hmac
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from fastapi import Cookie, HTTPException, Response, status
+from fastapi import Cookie, Header, HTTPException, Response, status
 
 import config
 
@@ -49,9 +53,26 @@ def is_authenticated(token: str | None) -> bool:
         return False
 
 
-def require_admin(zanviq_token: str | None = Cookie(default=None)) -> None:
-    """FastAPI dependency: raises 401 unless a valid session cookie is present."""
-    if not is_authenticated(zanviq_token):
+def is_valid_api_token(authorization: str | None) -> bool:
+    """True if the `Authorization: Bearer <token>` header matches ADMIN_API_TOKEN."""
+    if not config.ADMIN_API_TOKEN or not authorization:
+        return False
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        return False
+    return hmac.compare_digest(token.strip(), config.ADMIN_API_TOKEN)
+
+
+def is_admin(zanviq_token: str | None, authorization: str | None) -> bool:
+    return is_authenticated(zanviq_token) or is_valid_api_token(authorization)
+
+
+def require_admin(
+    zanviq_token: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
+) -> None:
+    """FastAPI dependency: raises 401 unless a valid session cookie or API token is present."""
+    if not is_admin(zanviq_token, authorization):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",

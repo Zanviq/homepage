@@ -29,6 +29,9 @@ env/
 # Local data (markdown + images live on the Pi HDD, never in git)
 data/
 
+# Local working copy used by tools/zanviq.mjs (the live copy is on the Pi)
+content/
+
 # Logs
 *.log
 npm-debug.log*

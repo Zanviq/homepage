@@ -40,8 +40,25 @@ directly and sign in with the credentials from `.env`. After login you can:
 - `/admin/profile` — edit the About section, avatar, tagline, links, plus the
   Timeline and Qualifications entries (each item individually hideable)
 - In-browser markdown editor with live preview and drag-and-drop image upload
-- **Translate** button — KO → EN via Gemini, field by field. Only appears when
-  `GEMINI_API_KEY` is set in `.env`.
+- **Translate** button — KO → EN via Gemini. Opens a checklist of every field
+  and every markdown paragraph (select all / clear all / missing-EN-only), so
+  only the parts you pick are translated; the rest of the English text stays
+  as it is. Only appears when `GEMINI_API_KEY` is set in `.env`.
+
+### From the command line
+
+`tools/zanviq.mjs` (Node 18+, no dependencies) edits the same content through
+the API with a bearer token — set `ADMIN_API_TOKEN` in the Pi's `.env`, and
+put the same value in `~/.config/zanviq/token` (or `ZANVIQ_API_TOKEN`) on the
+machine running the CLI.
+
+```bash
+node tools/zanviq.mjs pull              # live site -> content/ (git-ignored)
+node tools/zanviq.mjs new my-project    # scaffold a hidden draft
+node tools/zanviq.mjs push my-project   # upload (local images/* included)
+node tools/zanviq.mjs publish my-project
+node tools/zanviq.mjs help
+```
 
 ## Setup
 

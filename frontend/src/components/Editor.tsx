@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ImagePlus, Languages, Loader2, Save, Trash2, X } from "lucide-react";
+import { ImagePlus, Languages, Loader2, Save, Trash2, X } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 import { Markdown } from "./Markdown";
-import { Selectable } from "./Selectable";
+import { TranslateDialog } from "./TranslateDialog";
 import {
   createProject,
   deleteProject,
@@ -15,6 +15,14 @@ import {
   uploadProjectImage,
 } from "@/lib/admin";
 import { t } from "@/lib/i18n";
+import {
+  blockUnits,
+  blocksAligned,
+  blocksFor,
+  mergeBlocks,
+  splitBlocks,
+  type TranslateUnit,
+} from "@/lib/translation";
 import type { Link as LinkT, Project } from "@/lib/types";
 
 type Mode = "new" | "edit";
@@ -56,44 +64,50 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
   const [error, setError] = useState("");
   const [canTranslate, setCanTranslate] = useState(false);
   const [translating, setTranslating] = useState(false);
-  const [selectMode, setSelectMode] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     translateAvailable().then(setCanTranslate);
   }, []);
 
-  function toggleSel(key: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
+  const bodyGroup = lang === "ko" ? "본문" : "Body";
+
+  function translateUnits(): TranslateUnit[] {
+    const basics = lang === "ko" ? "기본 정보" : "Basics";
+    return [
+      { key: "title", group: basics, label: lang === "ko" ? "제목" : "Title", source: titleKo, target: titleEn },
+      { key: "summary", group: basics, label: lang === "ko" ? "요약" : "Summary", source: summaryKo, target: summaryEn },
+      ...blockUnits("body", bodyGroup, bodyKo, bodyEn),
+    ];
   }
 
-  function exitSelect() {
-    setSelectMode(false);
-    setSelected(new Set());
+  function translateNotes(): Record<string, string> {
+    if (blocksAligned(bodyKo, bodyEn)) return {};
+    const n = splitBlocks(bodyKo).length;
+    const m = splitBlocks(bodyEn).length;
+    return {
+      [bodyGroup]:
+        lang === "ko"
+          ? `한글 본문(${n}문단)과 영문 본문(${m}문단)의 문단 수가 달라 짝이 맞지 않습니다. 선택하지 않은 문단은 같은 순서의 영문 문단으로 채워지니, 결과를 확인하거나 본문 전체를 번역하세요.`
+          : `The KO body has ${n} blocks but EN has ${m}, so they don't pair up. Unselected blocks keep the EN block at the same position — review the result, or translate the whole body.`,
+    };
   }
 
-  async function onProceed() {
-    const keys = [...selected];
-    if (keys.length === 0) return;
-    const koFor = (k: string) =>
-      k === "title" ? titleKo : k === "summary" ? summaryKo : bodyKo;
-
+  async function onTranslate(keys: string[]) {
+    const units = new Map(translateUnits().map((u) => [u.key, u]));
     setTranslating(true);
     setError("");
     try {
-      const res = await translate(keys.map(koFor));
-      keys.forEach((k, i) => {
-        const en = res[i];
-        if (k === "title") setTitleEn(en);
-        else if (k === "summary") setSummaryEn(en);
-        else setBodyEn(en);
-      });
-      if (selected.has("body")) setBodyLang("en");
-      exitSelect();
+      const res = await translate(keys.map((k) => units.get(k)!.source));
+      const results = new Map(keys.map((k, i) => [k, res[i]]));
+      if (results.has("title")) setTitleEn(results.get("title")!);
+      if (results.has("summary")) setSummaryEn(results.get("summary")!);
+      const body = blocksFor("body", results);
+      if (body.size > 0) {
+        setBodyEn(mergeBlocks(bodyKo, bodyEn, body));
+        setBodyLang("en");
+      }
+      setPickerOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Translation failed");
     } finally {
@@ -155,31 +169,12 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
               ? "프로젝트 편집"
               : "Edit project"}
         </h1>
-        {selectMode ? (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={onProceed}
-              disabled={translating || selected.size === 0}
-              className="btn-primary disabled:opacity-50"
-            >
-              {translating ? (
-                <Loader2 size={15} className="animate-spin" />
-              ) : (
-                <Check size={15} />
-              )}
-              {lang === "ko" ? `번역 진행 (${selected.size})` : `Translate (${selected.size})`}
-            </button>
-            <button onClick={exitSelect} className="btn-ghost">
-              {t("cancel", lang)}
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
             {canTranslate && (
               <button
-                onClick={() => setSelectMode(true)}
+                onClick={() => setPickerOpen(true)}
                 className="btn-ghost hover:!bg-leaf hover:!text-paper"
-                title={lang === "ko" ? "번역할 칸을 선택" : "Pick fields to translate"}
+                title={lang === "ko" ? "번역할 항목을 골라 한→영 번역" : "Pick what to translate KO→EN"}
               >
                 <Languages size={14} /> {t("translate", lang)}
               </button>
@@ -196,16 +191,17 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
               {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
               {t("save", lang)}
             </button>
-          </div>
-        )}
+        </div>
       </div>
 
-      {selectMode && (
-        <p className="mb-6 border-2 border-leaf bg-leaf/10 px-3 py-2 text-sm">
-          {lang === "ko"
-            ? "번역할 한글 입력 칸을 클릭해 선택한 뒤 '번역 진행'을 누르세요."
-            : "Click the Korean fields you want to translate, then press Translate."}
-        </p>
+      {pickerOpen && (
+        <TranslateDialog
+          units={translateUnits()}
+          notes={translateNotes()}
+          busy={translating}
+          onCancel={() => setPickerOpen(false)}
+          onConfirm={onTranslate}
+        />
       )}
 
       {error && (
@@ -217,10 +213,10 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
         <div className="flex flex-col gap-6">
           {/* titles */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <Selectable active={selectMode} selected={selected.has("title")} onToggle={() => toggleSel("title")}>
+            <div>
               <label className="field-label">제목 (KO)</label>
               <input className="field" value={titleKo} onChange={(e) => setTitleKo(e.target.value)} />
-            </Selectable>
+            </div>
             <div>
               <label className="field-label">Title (EN)</label>
               <input className="field" value={titleEn} onChange={(e) => setTitleEn(e.target.value)} />
@@ -229,10 +225,10 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
 
           {/* summaries */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <Selectable active={selectMode} selected={selected.has("summary")} onToggle={() => toggleSel("summary")}>
+            <div>
               <label className="field-label">요약 (KO)</label>
               <textarea className="field h-20 resize-none" value={summaryKo} onChange={(e) => setSummaryKo(e.target.value)} />
-            </Selectable>
+            </div>
             <div>
               <label className="field-label">Summary (EN)</label>
               <textarea className="field h-20 resize-none" value={summaryEn} onChange={(e) => setSummaryEn(e.target.value)} />
@@ -240,7 +236,6 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
           </div>
 
           {/* body editor */}
-          <Selectable active={selectMode} selected={selected.has("body")} onToggle={() => toggleSel("body")}>
           <div className="border-2 border-ink">
             <div className="flex items-center justify-between border-b-2 border-ink bg-paper-2/50 px-3 py-2">
               <div className="flex">
@@ -260,7 +255,6 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
               uploadable={mode === "edit"}
             />
           </div>
-          </Selectable>
         </div>
 
         {/* ── side column ── */}

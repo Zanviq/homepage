@@ -20,6 +20,10 @@ JWT_EXPIRE_HOURS = 24 * 7  # one week
 
 COOKIE_NAME = "zanviq_token"
 
+# Long-lived bearer token for non-browser clients (the content CLI in
+# tools/zanviq.mjs). Empty disables token auth entirely.
+ADMIN_API_TOKEN = os.getenv("ADMIN_API_TOKEN", "")
+
 # Gemini (Google Generative Language API) for KO -> EN translation
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
