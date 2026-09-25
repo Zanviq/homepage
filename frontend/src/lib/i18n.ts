@@ -28,6 +28,7 @@ export const STRINGS: Dict = {
   dashboard: { ko: "대시보드", en: "Dashboard" },
   new_project: { ko: "새 프로젝트", en: "New project" },
   edit_profile: { ko: "프로필 편집", en: "Edit profile" },
+  design_card: { ko: "명함 디자인", en: "Design card" },
   logout: { ko: "로그아웃", en: "Log out" },
   save: { ko: "저장", en: "Save" },
   delete: { ko: "삭제", en: "Delete" },

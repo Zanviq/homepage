@@ -22,6 +22,10 @@ export function getProjects(): Promise<ProjectMeta[] | null> {
   return serverGet<ProjectMeta[]>("/api/projects");
 }
 
+export function getCard(): Promise<unknown | null> {
+  return serverGet<unknown>("/api/card");
+}
+
 export function getProject(slug: string): Promise<Project | null> {
   return serverGet<Project>(`/api/projects/${encodeURIComponent(slug)}`);
 }

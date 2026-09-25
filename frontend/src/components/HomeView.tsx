@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowDownRight, ChevronDown } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 import { ProjectCard } from "./ProjectCard";
+import { CardStage } from "./card/CardStage";
+import { normalizeCard } from "@/lib/card/defaults";
 import { Markdown, MarkdownInline } from "./Markdown";
 import { t } from "@/lib/i18n";
 import type { HistoryItem, Profile, ProjectMeta } from "@/lib/types";
@@ -19,11 +21,14 @@ const FALLBACK = {
 export function HomeView({
   profile,
   projects,
+  card,
 }: {
   profile: Profile | null;
   projects: ProjectMeta[];
+  card?: unknown;
 }) {
   const { lang } = useLang();
+  const cardDesign = useMemo(() => normalizeCard(card, profile), [card, profile]);
 
   const name = profile?.name || FALLBACK.name;
   const tagline =
@@ -34,66 +39,19 @@ export function HomeView({
     lang === "ko"
       ? profile?.about_ko || FALLBACK.about_ko
       : profile?.about_en || FALLBACK.about_en;
-  const links = profile?.links ?? [];
 
   return (
     <>
-      {/* ─── HERO ─────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-b-2 border-ink">
-        {/* decorative blobs */}
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border-2 border-ink bg-leaf/30 animate-slow-spin [animation-duration:40s]" />
-        <div className="pointer-events-none absolute right-16 top-40 hidden h-24 w-24 rotate-12 border-2 border-ink bg-butter shadow-[6px_6px_0_0_var(--ink)] sm:block" />
-
-        <div className="mx-auto max-w-6xl px-5 py-20 sm:py-28">
-          <div className="stagger max-w-4xl">
-            <p className="kicker mb-6 text-ink-soft [animation-delay:0ms]">
-              PORTFOLIO — {new Date().getFullYear()} · ZANVIQ.DEV
-            </p>
-
-            <h1 className="text-[15vw] font-semibold leading-[0.85] sm:text-[7.5rem] [animation-delay:80ms]">
-              {name.split(" ").map((word, i) => (
-                <span key={i} className="block">
-                  {i === 1 ? (
-                    <span className="relative inline-block">
-                      <span className="relative z-10">{word}</span>
-                      <span className="absolute inset-x-0 bottom-1 z-0 h-4 bg-tangerine" />
-                    </span>
-                  ) : (
-                    word
-                  )}
-                </span>
-              ))}
-            </h1>
-
-            <p className="mt-8 max-w-xl font-display text-2xl italic text-ink-soft [animation-delay:180ms]">
-              {tagline}
-            </p>
-
-            {links.length > 0 && (
-              <div className="mt-8 flex flex-wrap gap-3 [animation-delay:260ms]">
-                {links.map((link) => (
-                  <a
-                    key={link.url}
-                    href={link.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="border-2 border-ink bg-paper px-4 py-2 text-sm font-medium shadow-[3px_3px_0_0_var(--ink)] transition-transform hover:-translate-y-0.5 hover:bg-leaf hover:text-paper"
-                  >
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <a
-            href="#work"
-            className="mt-16 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-ink-soft hover:text-leaf-deep"
-          >
-            {t("selected_work", lang)} <ArrowDownRight size={16} />
-          </a>
-        </div>
-      </section>
+      {/* ─── HERO: the business card, choreographed by scroll ─── */}
+      <h1 className="sr-only">
+        {name} — {tagline}
+      </h1>
+      <CardStage
+        card={cardDesign}
+        lang={lang}
+        tokens={{ name, tagline }}
+        scrollLabel={lang === "ko" ? "스크롤" : "Scroll"}
+      />
 
       {/* ─── ABOUT ────────────────────────────────────────────── */}
       <section id="about" className="border-b-2 border-ink bg-paper-2/60">

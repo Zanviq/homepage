@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Trash2, User, LogOut, Eye, EyeOff, GripVertical } from "lucide-react";
+import { Pencil, Plus, Trash2, User, LogOut, Eye, EyeOff, GripVertical, IdCard } from "lucide-react";
 import { AdminGuard } from "@/components/AdminGuard";
 import { useLang } from "@/components/LanguageProvider";
 import { deleteProject, listProjects, logout, reorderProjects, setProjectVisibility } from "@/lib/admin";
@@ -92,6 +92,9 @@ function Dashboard() {
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/profile" className="btn-ghost">
             <User size={15} /> {t("edit_profile", lang)}
+          </Link>
+          <Link href="/admin/card" className="btn-ghost">
+            <IdCard size={15} /> {t("design_card", lang)}
           </Link>
           <Link href="/admin/projects/new" className="btn-primary">
             <Plus size={15} /> {t("new_project", lang)}

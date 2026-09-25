@@ -167,6 +167,15 @@ async function cmdPull(args) {
   const all = args.length === 0 || args.includes("--all");
   const wanted = args.filter((a) => !a.startsWith("--"));
 
+  if (all || wanted.includes("card")) {
+    const card = await api("GET", "/api/card");
+    mkdirSync(ABOUT, { recursive: true });
+    if (card) {
+      writeJson(join(ABOUT, "card.json"), card);
+      console.log(`pulled card -> ${join(ABOUT, "card.json")}`);
+    } else console.log("card: none saved yet (the site uses the default design)");
+  }
+
   if (all || wanted.includes("profile")) {
     const profile = await api("GET", "/api/profile");
     mkdirSync(join(ABOUT, "images"), { recursive: true });
@@ -178,7 +187,7 @@ async function cmdPull(args) {
 
   const slugs = all
     ? (await api("GET", "/api/projects")).map((p) => p.slug)
-    : wanted.filter((s) => s !== "profile");
+    : wanted.filter((s) => s !== "profile" && s !== "card");
   for (const slug of slugs) {
     const project = await api("GET", `/api/projects/${enc(slug)}`);
     writeProjectDir(join(PROJECTS, slug), project);
@@ -190,6 +199,7 @@ async function cmdPush(args) {
   if (args.length === 0) die("usage: push <slug|profile> [...]");
   for (const name of args) {
     if (name === "profile") await pushProfile();
+    else if (name === "card") await pushCard();
     else await pushProject(name);
   }
 }
@@ -207,6 +217,15 @@ async function pushProfile() {
   }
   await api("PUT", "/api/profile", profile);
   console.log("pushed profile");
+}
+
+async function pushCard() {
+  const file = join(ABOUT, "card.json");
+  if (!existsSync(file)) die("No content/about/card.json — run: pull card");
+  const { updated_at: _u, ...card } = readJson(file);
+  void _u;
+  await api("PUT", "/api/card", card);
+  console.log("pushed card");
 }
 
 async function pushProject(slug) {
@@ -303,8 +322,8 @@ const HELP = `zanviq content CLI  (${BASE_URL})
 
   status                       check token + API reachability
   list                         list projects on the live site (incl. hidden)
-  pull [slug|profile ...]      download to content/ (no args = everything)
-  push <slug|profile> [...]    upload from content/; creates the project if new,
+  pull [slug|profile|card ...] download to content/ (no args = everything)
+  push <slug|profile|card> ... upload from content/; creates the project if new,
                                uploads local images/* references first
   new <slug>                   scaffold content/projects/<slug> (hidden draft)
   publish <slug> [...]         make visible on the public site

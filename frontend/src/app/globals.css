@@ -442,3 +442,15 @@
     animation: none;
   }
 }
+
+/* ── home business card ─────────────────────────────────────────────────── */
+.card-link {
+  transition: filter 0.15s;
+}
+.card-link:hover {
+  filter: brightness(1.15);
+}
+.card-link:focus-visible {
+  outline: 3px solid var(--tangerine);
+  outline-offset: 4px;
+}

@@ -5,9 +5,10 @@ session cookie issued at /api/auth/login, or `Authorization: Bearer
 <ADMIN_API_TOKEN>` for the content CLI (tools/zanviq.mjs). Content is stored as markdown +
 images on disk (see storage.py).
 """
+import json
 import mimetypes
 
-from fastapi import Cookie, Depends, FastAPI, File, Header, HTTPException, Response, UploadFile
+from fastapi import Cookie, Depends, FastAPI, File, Header, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse
 
 import auth
@@ -72,6 +73,31 @@ def write_profile(payload: ProfileInput):
 async def upload_profile_image(file: UploadFile = File(...)):
     content = await _read_image(file)
     return {"url": storage.save_profile_image(file.filename or "image", content)}
+
+
+# ── Business card (home hero, designed in /admin/card) ──────────────────────
+
+MAX_CARD_BYTES = 256 * 1024
+
+
+@app.get("/api/card")
+def read_card():
+    """Saved card design, or `null` (the frontend then builds one from the profile)."""
+    return storage.get_card()
+
+
+@app.put("/api/card", dependencies=[Depends(auth.require_admin)])
+async def write_card(request: Request):
+    body = await request.body()
+    if len(body) > MAX_CARD_BYTES:
+        raise HTTPException(status_code=413, detail="Card design too large (max 256 KB)")
+    try:
+        card = json.loads(body)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Body must be JSON")
+    if not isinstance(card, dict) or not isinstance(card.get("front"), dict) or not isinstance(card.get("back"), dict):
+        raise HTTPException(status_code=400, detail="Card needs `front` and `back` objects")
+    return storage.save_card(card)
 
 
 # ── Projects ────────────────────────────────────────────────────────────────

@@ -57,6 +57,11 @@ directly and sign in with the credentials from `.env`. After login you can:
 - `/admin` — dashboard: create / edit / delete projects, drag to reorder, and
   toggle per-project visibility with the eye icon (unpublished projects stay
   visible to you, hidden from the public site and the sitemap)
+- `/admin/card` — design the business card shown at the top of the home page:
+  front and back faces, text / shapes / images / QR codes, drag-to-move,
+  resize and rotate, per-element scroll keyframes, and the card's own scroll
+  choreography (tilt, flip to the back). `{name}` and `{tagline}` in text are
+  filled from the profile. Stored as `about/card.json`.
 - `/admin/profile` — edit the About section, avatar, tagline, links, plus the
   Timeline and Qualifications entries (each item individually hideable)
 - In-browser markdown editor with live preview and drag-and-drop image upload

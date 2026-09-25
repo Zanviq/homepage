@@ -135,3 +135,17 @@ export async function uploadProfileImage(file: File): Promise<string> {
   );
   return data.url;
 }
+
+export async function getCard(): Promise<unknown | null> {
+  return json(await fetch("/api/card", { cache: "no-store" }));
+}
+
+export async function saveCard(card: unknown): Promise<unknown> {
+  return json(
+    await fetch("/api/card", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(card),
+    }),
+  );
+}

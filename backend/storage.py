@@ -234,6 +234,26 @@ def save_profile_image(filename: str, content: bytes) -> str:
     return f"/api/media/about/images/{target.name}"
 
 
+# ── Business card (home hero) ───────────────────────────────────────────────
+
+def get_card() -> dict | None:
+    """The card design edited in /admin/card, or None if never saved."""
+    path = config.ABOUT_DIR / "card.json"
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def save_card(card: dict) -> dict:
+    config.ABOUT_DIR.mkdir(parents=True, exist_ok=True)
+    card = {**card, "updated_at": _now()}
+    path = config.ABOUT_DIR / "card.json"
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(card, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(path)
+    return card
+
+
 # ── Media path resolution ───────────────────────────────────────────────────
 
 def resolve_media(rel_path: str) -> Path | None:
