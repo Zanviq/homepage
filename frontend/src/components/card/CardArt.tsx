@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { elementStyle } from "@/lib/card/motion";
-import type { Background, CardDesign, CardElement, FaceKey, FontKey, QrElement, Shadow } from "@/lib/card/types";
+import { PAPER_TILE, paperTexture } from "@/lib/card/paper";
+import type { Background, CardDesign, CardElement, FaceKey, FontKey, PaperKind, QrElement, Shadow } from "@/lib/card/types";
 import type { Lang } from "@/lib/types";
 
 export const FONT_STACK: Record<FontKey, string> = {
@@ -141,13 +142,40 @@ export function ElementArt({ el, lang, tokens }: { el: CardElement; lang: Lang; 
   }
 }
 
-/** A face (background + elements) in card units. `p` = scroll progress or null for the base pose. */
+/** The generated paper tile for a kind (null until ready, or for "none"). */
+export function usePaperTexture(kind: PaperKind) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (kind === "none") {
+      setUrl(null);
+      return;
+    }
+    let live = true;
+    const run = () => void paperTexture(kind).then((u) => live && setUrl(u));
+    // generating takes a few frames of CPU; keep it off the first paint
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    const idle = w.requestIdleCallback?.(run, { timeout: 700 });
+    const timer = idle === undefined ? window.setTimeout(run, 80) : undefined;
+    return () => {
+      live = false;
+      if (idle !== undefined) w.cancelIdleCallback?.(idle);
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [kind]);
+  return url;
+}
+
+/**
+ * A face (background + elements) in card units. `p` = scroll progress or null
+ * for the base pose; `settle` blends the motion back to the base pose.
+ */
 export function FaceArt({
   card,
   face,
   lang,
   tokens,
   p,
+  settle = 0,
   links = false,
   renderOverlay,
 }: {
@@ -156,10 +184,12 @@ export function FaceArt({
   lang: Lang;
   tokens: Tokens;
   p: number | null;
+  settle?: number;
   links?: boolean;
   renderOverlay?: (el: CardElement) => React.ReactNode;
 }) {
   const f = card[face];
+  const texture = usePaperTexture(card.paper.texture);
   return (
     <div
       style={{
@@ -173,7 +203,7 @@ export function FaceArt({
       {f.elements.map((el) => {
         if (el.hidden) return null;
         const art = <ElementArt el={el} lang={lang} tokens={tokens} />;
-        const style = elementStyle(el, p);
+        const style = elementStyle(el, p, settle);
         if (links && el.link) {
           const external = /^https?:/i.test(el.link);
           return (
@@ -196,6 +226,19 @@ export function FaceArt({
           </div>
         );
       })}
+      {texture && card.paper.amount > 0 && (
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage: `url("${texture}")`,
+            backgroundSize: `${PAPER_TILE}px ${PAPER_TILE}px`,
+            opacity: Math.min(1, card.paper.amount),
+            pointerEvents: "none",
+          }}
+        />
+      )}
       {card.borderWidth > 0 && (
         <div
           aria-hidden

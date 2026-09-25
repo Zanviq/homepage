@@ -107,6 +107,22 @@ export interface CardScroll {
   scaleTo: number;
   /** Tilt toward the pointer on hover. */
   hoverTilt: boolean;
+  /** 0..1 — how softly the card follows the scroll position. */
+  smoothing: number;
+  /** After the stage, shrink the card into a floating corner card (click flips it). */
+  dock: boolean;
+  /** Width of the floating card on wide screens, px. */
+  dockWidth: number;
+}
+
+export type PaperKind = "none" | "paper" | "cotton" | "linen";
+
+export interface CardPaper {
+  texture: PaperKind;
+  /** 0..1 strength of the paper texture. */
+  amount: number;
+  /** 0..1 strength of the light and shading as the card turns. */
+  light: number;
 }
 
 export interface CardDesign {
@@ -117,6 +133,7 @@ export interface CardDesign {
   borderWidth: number;
   borderColor: string;
   shadow: Shadow;
+  paper: CardPaper;
   front: CardFace;
   back: CardFace;
   scroll: CardScroll;

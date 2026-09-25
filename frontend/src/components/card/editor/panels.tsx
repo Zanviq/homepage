@@ -422,7 +422,7 @@ export function CardPanel({ card, face, update, lang, profile }: { card: CardDes
 
       <Section title={t("스크롤 연출", "Scroll choreography")}>
         <Row label={t("구간 길이", "Stage length")}>
-          <Slider value={s.length} min={1.2} max={4} step={0.1} onChange={(v) => setS((x) => (x.length = v), "len")} />
+          <Slider value={s.length} min={1.2} max={6} step={0.1} onChange={(v) => setS((x) => (x.length = v), "len")} />
           <span className="w-12 text-right font-mono text-xs">{s.length.toFixed(1)}×</span>
         </Row>
         <Row label={t("뒤집기", "Flip")}>
@@ -445,6 +445,57 @@ export function CardPanel({ card, face, update, lang, profile }: { card: CardDes
         <Row label={t("마우스 반응", "Hover tilt")}>
           <Toggle value={s.hoverTilt} onChange={(v) => setS((x) => (x.hoverTilt = v), "hover")} label={s.hoverTilt ? t("켜짐", "On") : t("꺼짐", "Off")} />
         </Row>
+        <Row label={t("부드러움", "Smoothing")}>
+          <Slider value={s.smoothing} min={0} max={1} step={0.05} onChange={(v) => setS((x) => (x.smoothing = v), "smooth")} />
+          <span className="w-9 text-right font-mono text-xs">{Math.round(s.smoothing * 100)}</span>
+        </Row>
+        <Row label={t("코너 명함", "Corner card")}>
+          <Toggle
+            value={s.dock}
+            onChange={(v) => setS((x) => (x.dock = v), "dock")}
+            label={s.dock ? t("오른쪽 아래에 남기기", "Stays bottom-right") : t("함께 스크롤", "Scrolls away")}
+          />
+        </Row>
+        {s.dock && (
+          <Row label={t("코너 크기", "Corner size")}>
+            <Slider value={s.dockWidth} min={140} max={420} step={10} onChange={(v) => setS((x) => (x.dockWidth = v), "dockw")} />
+            <span className="w-12 text-right font-mono text-xs">{s.dockWidth}px</span>
+          </Row>
+        )}
+        <p className="text-[0.7rem] leading-relaxed text-ink-soft">
+          {t(
+            "스테이지가 끝나면 명함이 오른쪽 아래로 작게 날아가 떠 있고, 누르면 뒤집힙니다. 모바일은 화면 너비의 38%까지만.",
+            "After the stage the card flies to the bottom-right corner and floats there; clicking flips it. On phones it is capped at 38% of the width.",
+          )}
+        </p>
+      </Section>
+
+      <Section title={t("종이 질감과 빛", "Paper & light")}>
+        <Row label={t("질감", "Texture")}>
+          <Seg
+            value={card.paper.texture}
+            onChange={(v) => update((d) => (d.paper.texture = v), "paper-kind")}
+            options={[
+              { value: "none", label: t("없음", "None") },
+              { value: "paper", label: t("종이", "Paper") },
+              { value: "cotton", label: t("코튼", "Cotton") },
+              { value: "linen", label: t("린넨", "Linen") },
+            ]}
+          />
+        </Row>
+        {card.paper.texture !== "none" && (
+          <Row label={t("질감 세기", "Strength")}>
+            <Slider value={card.paper.amount} min={0} max={1} step={0.05} onChange={(v) => update((d) => (d.paper.amount = v), "paper-amt")} />
+            <span className="w-9 text-right font-mono text-xs">{Math.round(card.paper.amount * 100)}</span>
+          </Row>
+        )}
+        <Row label={t("빛과 그늘", "Light")}>
+          <Slider value={card.paper.light} min={0} max={1} step={0.05} onChange={(v) => update((d) => (d.paper.light = v), "paper-light")} />
+          <span className="w-9 text-right font-mono text-xs">{Math.round(card.paper.light * 100)}</span>
+        </Row>
+        <p className="text-[0.7rem] leading-relaxed text-ink-soft">
+          {t("빛은 명함이 기울거나 뒤집힐 때 드는 밝기와 그늘입니다 (3D 보기에서 확인).", "Light is the highlight and shade as the card tilts and turns (see the 3D view).")}
+        </p>
       </Section>
 
       <Section title={t("초기화", "Reset")}>

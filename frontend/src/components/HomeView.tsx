@@ -51,6 +51,7 @@ export function HomeView({
         lang={lang}
         tokens={{ name, tagline }}
         scrollLabel={lang === "ko" ? "스크롤" : "Scroll"}
+        flipLabel={lang === "ko" ? "명함 뒤집기" : "Flip the card"}
       />
 
       {/* ─── ABOUT ────────────────────────────────────────────── */}

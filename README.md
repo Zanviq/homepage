@@ -60,8 +60,11 @@ directly and sign in with the credentials from `.env`. After login you can:
 - `/admin/card` — design the business card shown at the top of the home page:
   front and back faces, text / shapes / images / QR codes, drag-to-move,
   resize and rotate, per-element scroll keyframes, and the card's own scroll
-  choreography (tilt, flip to the back). `{name}` and `{tagline}` in text are
-  filled from the profile. Stored as `about/card.json`.
+  choreography (tilt, flip to the back). Past the stage the card flies into the
+  bottom-right corner and floats there; clicking it flips it. Paper texture
+  (paper / cotton / linen, generated in the browser) and light are per card.
+  `{name}` and `{tagline}` in text are filled from the profile. Stored as
+  `about/card.json`.
 - `/admin/profile` — edit the About section, avatar, tagline, links, plus the
   Timeline and Qualifications entries (each item individually hideable)
 - In-browser markdown editor with live preview and drag-and-drop image upload

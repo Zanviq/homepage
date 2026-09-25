@@ -454,3 +454,11 @@
   outline: 3px solid var(--tangerine);
   outline-offset: 4px;
 }
+.card-dock {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.card-dock:focus-visible {
+  outline: 3px solid var(--tangerine);
+  outline-offset: 6px;
+}
