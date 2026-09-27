@@ -125,7 +125,7 @@ export function defaultCard(profile: Profile | null): CardDesign {
     shadow: { x: 16, y: 16, color: PALETTE.ink },
     paper: { texture: "paper", amount: 0.55, light: 0.6 },
     scroll: {
-      length: 3.4,
+      length: 2.0,
       flip: true,
       flipStart: 0.36,
       flipEnd: 0.64,
@@ -133,7 +133,7 @@ export function defaultCard(profile: Profile | null): CardDesign {
       scaleFrom: 0.9,
       scaleTo: 1,
       hoverTilt: true,
-      smoothing: 0.45,
+      smoothing: 0.15,
       dock: true,
       dockWidth: 260,
     },

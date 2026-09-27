@@ -12,7 +12,7 @@ const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 
 const win = (t: number, a: number, b: number) => clamp01((t - a) / (b - a));
 
 /** Flight time between the hero and the corner. */
-const DOCK_MS = 900;
+const DOCK_MS = 650;
 
 interface Frame {
   p: number; // stage progress (smoothed scroll)
