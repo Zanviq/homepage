@@ -16,6 +16,14 @@ export interface HistoryItem {
   hidden?: boolean;
 }
 
+/** A row in the About spec table (e.g. "주로 쓰는 도구" → "Next.js, FastAPI"). */
+export interface Fact {
+  label_ko: string;
+  label_en: string;
+  value_ko: string;
+  value_en: string;
+}
+
 export interface ProjectMeta {
   slug: string;
   title_ko: string;
@@ -46,4 +54,5 @@ export interface Profile {
   links: Link[];
   history: HistoryItem[];
   qualifications: HistoryItem[];
+  facts?: Fact[];
 }

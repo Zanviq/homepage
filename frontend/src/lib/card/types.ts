@@ -113,6 +113,8 @@ export interface CardScroll {
   dock: boolean;
   /** Width of the floating card on wide screens, px. */
   dockWidth: number;
+  /** "box": the card starts in a box of 100 — the lid lifts, the top card rises out. */
+  intro?: "none" | "box";
 }
 
 export type PaperKind = "none" | "paper" | "cotton" | "linen";

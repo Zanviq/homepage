@@ -259,7 +259,7 @@ export function Editor({ mode, initial }: { mode: Mode; initial?: Project }) {
 
         {/* ── side column ── */}
         <aside className="flex flex-col gap-6">
-          <div className="border-2 border-ink bg-paper p-4 shadow-[6px_6px_0_0_var(--ink)]">
+          <div className="border-2 border-ink bg-paper p-4 shadow-lift">
             <label className="mb-3 flex cursor-pointer items-center justify-between">
               <span className="font-mono text-xs uppercase tracking-widest">
                 {published ? t("published", lang) : t("draft", lang)}
@@ -416,7 +416,7 @@ function CoverPicker({
   }
 
   return (
-    <div className="border-2 border-ink bg-paper p-4 shadow-[6px_6px_0_0_var(--ink)]">
+    <div className="border-2 border-ink bg-paper p-4 shadow-lift">
       <span className="field-label">{lang === "ko" ? "커버 이미지" : "Cover image"}</span>
       {cover ? (
         <div className="relative">
@@ -464,7 +464,7 @@ function LinksEditor({
     setLinks(next);
   }
   return (
-    <div className="border-2 border-ink bg-paper p-4 shadow-[6px_6px_0_0_var(--ink)]">
+    <div className="border-2 border-ink bg-paper p-4 shadow-lift">
       <span className="field-label">{t("links", lang)}</span>
       <div className="flex flex-col gap-2">
         {links.map((l, i) => (

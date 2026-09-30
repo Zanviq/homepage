@@ -37,7 +37,7 @@ const PROJECT_FIELDS = [
   "tags", "links", "cover", "published", "order",
 ];
 const PROFILE_FIELDS = [
-  "name", "tagline_ko", "tagline_en", "avatar", "links", "history", "qualifications",
+  "name", "tagline_ko", "tagline_en", "avatar", "links", "history", "qualifications", "facts",
 ];
 
 const MIME = {

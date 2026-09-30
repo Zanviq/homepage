@@ -32,7 +32,7 @@ import { makeElement, newId, normalizeCard } from "@/lib/card/defaults";
 import { elementStyle } from "@/lib/card/motion";
 import type { CardDesign, CardElement, ElementType, FaceKey } from "@/lib/card/types";
 import type { Lang, Profile } from "@/lib/types";
-import { FaceArt, type Tokens } from "../CardArt";
+import { cardShadowCss, FaceArt, type Tokens } from "../CardArt";
 import { Card3D } from "../CardStage";
 import { CardPanel, ElementPanel, MotionPanel, type Update } from "./panels";
 
@@ -680,7 +680,7 @@ function Canvas({
           height: card.height * scale,
           position: "relative",
           borderRadius: card.radius * scale,
-          boxShadow: `${card.shadow.x * scale}px ${card.shadow.y * scale}px 0 0 ${card.shadow.color}`,
+          boxShadow: cardShadowCss(card, scale, false),
           touchAction: "none",
         }}
       >

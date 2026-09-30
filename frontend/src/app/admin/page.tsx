@@ -128,7 +128,7 @@ function Dashboard() {
                 onDragStart={() => setDragIndex(i)}
                 onDragOver={(e) => onDragOver(e, i)}
                 onDragEnd={onDragEnd}
-                className={`flex items-center gap-3 border-2 border-ink bg-paper p-4 transition-shadow hover:shadow-[6px_6px_0_0_var(--ink)] sm:gap-4 ${
+                className={`flex items-center gap-3 border-2 border-ink bg-paper p-4 transition-shadow hover:shadow-lift sm:gap-4 ${
                   dragIndex === i ? "opacity-50" : ""
                 }`}
               >

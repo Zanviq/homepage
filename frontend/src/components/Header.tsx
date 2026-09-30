@@ -13,58 +13,30 @@ export function Header() {
   if (pathname?.startsWith("/drive")) return null;
 
   return (
-    <header className="sticky top-0 z-50 border-b-2 border-ink bg-paper/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
-        <Link href="/" className="group flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center border-2 border-ink bg-leaf text-paper shadow-[3px_3px_0_0_var(--ink)] transition-transform group-hover:-rotate-6">
-            <LeafMark />
-          </span>
-          <span className="font-display text-xl font-semibold tracking-tight">
-            zanviq
-          </span>
+    <header className="hd">
+      <div className="wrap hd-in">
+        <Link href="/" className="logo">
+          <ZMark />
+          <span className="logo-word">zanviq</span>
         </Link>
 
-        <nav className="flex items-center gap-1 sm:gap-3">
-          <Link
-            href="/#work"
-            className="px-2 py-1 text-sm font-medium hover:text-leaf-deep"
-          >
+        <nav className="nav" aria-label="Main">
+          <Link href="/#work" className="nav-link">
             {t("nav_work", lang)}
           </Link>
-          <Link
-            href="/#about"
-            className="px-2 py-1 text-sm font-medium hover:text-leaf-deep"
-          >
+          <Link href="/#about" className="nav-link">
             {t("nav_about", lang)}
           </Link>
-          <Link
-            href="/#history"
-            className="hidden px-2 py-1 text-sm font-medium hover:text-leaf-deep sm:inline"
-          >
+          <Link href="/#history" className="nav-link hide-sm">
             {t("nav_history", lang)}
           </Link>
-          <Link
-            href="/drive"
-            className="ml-1 flex items-center gap-1.5 border-2 border-ink bg-tangerine px-2.5 py-1 text-sm font-semibold text-paper shadow-[3px_3px_0_0_var(--ink)] transition-transform hover:-translate-y-0.5 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
-          >
+          <Link href="/drive" className="drive-btn">
             <SteeringMark />
-            {t("nav_drive", lang)}
+            <span className="drive-lbl">{t("nav_drive", lang)}</span>
           </Link>
-          <button
-            onClick={toggle}
-            aria-label="Toggle language"
-            className="ml-1 flex items-center border-2 border-ink font-mono text-xs shadow-[3px_3px_0_0_var(--ink)] transition-transform active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
-          >
-            <span
-              className={`px-2 py-1 ${lang === "ko" ? "bg-ink text-paper" : "bg-paper"}`}
-            >
-              KO
-            </span>
-            <span
-              className={`px-2 py-1 ${lang === "en" ? "bg-ink text-paper" : "bg-paper"}`}
-            >
-              EN
-            </span>
+          <button type="button" onClick={toggle} aria-label="Toggle language" className="lang">
+            <span className={lang === "ko" ? "on" : ""}>KO</span>
+            <span className={lang === "en" ? "on" : ""}>EN</span>
           </button>
         </nav>
       </div>
@@ -75,23 +47,30 @@ export function Header() {
 function SteeringMark() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" />
-      <circle cx="12" cy="12" r="2.2" fill="currentColor" />
-      <path d="M3.5 10.5h6.3M14.2 10.5h6.3M12 14.2V21" stroke="currentColor" strokeWidth="2.4" />
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" />
+      <path d="M3.5 10.5h6.3M14.2 10.5h6.3M12 14.2V21" stroke="currentColor" strokeWidth="1.8" />
     </svg>
   );
 }
 
-function LeafMark() {
+/** Z drawn on its construction lines: circle, square, diagonal, centre lines. */
+export function ZMark({ ink = "#1d1b24", guide = "#8580b8", className }: { ink?: string; guide?: string; className?: string }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M20 4C10 4 4 10 4 20c10 0 16-6 16-16Z"
-        fill="currentColor"
-        stroke="var(--ink)"
-        strokeWidth="1.5"
-      />
-      <path d="M8 16 16 8" stroke="var(--ink)" strokeWidth="1.5" />
+    <svg className={className} viewBox="0 0 100 100" fill="none" aria-hidden>
+      <circle cx="50" cy="50" r="46" stroke={guide} strokeWidth=".6" />
+      <rect x="17.5" y="17.5" width="65" height="65" stroke={guide} strokeWidth=".6" strokeDasharray="3 2" />
+      <path d="M4 50h92M50 4v92" stroke={guide} strokeWidth=".5" strokeDasharray="10 2 2 2" />
+      <path d="M17.5 17.5l65 65" stroke={guide} strokeWidth=".5" strokeDasharray="3 2" />
+      <path d="M26 27h48L26 73h48" stroke={ink} strokeWidth="7" strokeLinejoin="miter" strokeLinecap="square" />
+      {[
+        [26, 27],
+        [74, 27],
+        [26, 73],
+        [74, 73],
+      ].map(([x, y]) => (
+        <circle key={`${x}-${y}`} cx={x} cy={y} r="2" fill="#fcfcfe" stroke={guide} strokeWidth=".8" />
+      ))}
     </svg>
   );
 }

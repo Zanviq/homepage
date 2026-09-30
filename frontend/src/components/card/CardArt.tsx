@@ -29,6 +29,18 @@ export function backgroundCss(bg: Background): React.CSSProperties {
   return { background: bg.color };
 }
 
+/**
+ * The card's own shadow: a hard offset if the design sets one, otherwise a
+ * soft lift (tighter when the card is docked in the corner).
+ */
+export function cardShadowCss(card: CardDesign, scale: number, docked: boolean): string {
+  const s = card.shadow;
+  if (s.x || s.y) return `${s.x * scale}px ${s.y * scale}px 0 0 ${s.color}`;
+  return docked
+    ? "0 16px 28px -14px rgb(40 34 100 / 0.55)"
+    : "0 1px 2px rgb(28 27 34 / 0.1), 0 30px 50px -30px rgb(40 34 100 / 0.5)";
+}
+
 const shadowCss = (s?: Shadow) => (s && (s.x || s.y) ? `${s.x}px ${s.y}px 0 0 ${s.color}` : undefined);
 
 function QrArt({ el }: { el: QrElement }) {

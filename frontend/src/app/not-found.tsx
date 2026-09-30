@@ -9,7 +9,7 @@ export default function NotFound() {
         <p className="mt-4 text-ink-soft">이 페이지는 존재하지 않습니다. / This page doesn&apos;t exist.</p>
         <Link
           href="/"
-          className="mt-8 inline-block border-2 border-ink bg-ink px-6 py-3 font-mono text-sm uppercase tracking-widest text-paper shadow-[4px_4px_0_0_var(--leaf-deep)] transition-transform hover:-translate-y-0.5"
+          className="mt-8 inline-block border-2 border-ink bg-ink px-6 py-3 font-mono text-sm uppercase tracking-widest text-paper shadow-lift transition-transform hover:-translate-y-0.5"
         >
           ← Home
         </Link>

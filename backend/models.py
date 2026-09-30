@@ -38,6 +38,14 @@ class HistoryItem(BaseModel):
     hidden: bool = False  # admin can hide an individual entry from the site
 
 
+class Fact(BaseModel):
+    """A row in the About spec table: label and value, in both languages."""
+    label_ko: str = ""
+    label_en: str = ""
+    value_ko: str = ""
+    value_en: str = ""
+
+
 class ProjectInput(BaseModel):
     """Payload for creating / updating a project."""
     title_ko: str = ""
@@ -65,3 +73,4 @@ class ProfileInput(BaseModel):
     links: list[Link] = Field(default_factory=list)
     history: list[HistoryItem] = Field(default_factory=list)
     qualifications: list[HistoryItem] = Field(default_factory=list)
+    facts: list[Fact] = Field(default_factory=list)

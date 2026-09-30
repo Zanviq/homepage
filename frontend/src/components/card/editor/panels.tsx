@@ -421,6 +421,13 @@ export function CardPanel({ card, face, update, lang, profile }: { card: CardDes
       </Section>
 
       <Section title={t("스크롤 연출", "Scroll choreography")}>
+        <Row label={t("시작 연출", "Intro")}>
+          <Toggle
+            value={s.intro === "box"}
+            onChange={(v) => setS((x) => (x.intro = v ? "box" : "none"), "intro")}
+            label={s.intro === "box" ? t("명함 상자에서 꺼내기", "Out of a box of cards") : t("없음", "None")}
+          />
+        </Row>
         <Row label={t("구간 길이", "Stage length")}>
           <Slider value={s.length} min={1.2} max={6} step={0.1} onChange={(v) => setS((x) => (x.length = v), "len")} />
           <span className="w-12 text-right font-mono text-xs">{s.length.toFixed(1)}×</span>

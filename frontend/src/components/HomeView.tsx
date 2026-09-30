@@ -3,17 +3,17 @@
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useLang } from "./LanguageProvider";
-import { ProjectCard } from "./ProjectCard";
+import { linkText, ProjectCard } from "./ProjectCard";
 import { CardStage } from "./card/CardStage";
 import { normalizeCard } from "@/lib/card/defaults";
-import { Markdown, MarkdownInline } from "./Markdown";
+import { MarkdownInline } from "./Markdown";
 import { t } from "@/lib/i18n";
-import type { HistoryItem, Profile, ProjectMeta } from "@/lib/types";
+import type { HistoryItem, Lang, Profile, ProjectMeta } from "@/lib/types";
 
 const FALLBACK = {
   name: "Jaemin Seo",
-  tagline_ko: "만드는 사람 · AI를 만지작거리는 사람",
-  tagline_en: "Builder · AI tinkerer",
+  tagline_ko: "외주 개발로 경험을 쌓는 중",
+  tagline_en: "Building experience through freelance work",
   about_ko: "여기에 자기소개가 표시됩니다. `/login` 에서 로그인해 내용을 채워보세요.",
   about_en: "Your introduction shows up here. Log in at `/login` to fill it in.",
 };
@@ -28,21 +28,24 @@ export function HomeView({
   card?: unknown;
 }) {
   const { lang } = useLang();
+  const ko = lang === "ko";
   const cardDesign = useMemo(() => normalizeCard(card, profile), [card, profile]);
 
   const name = profile?.name || FALLBACK.name;
-  const tagline =
-    lang === "ko"
-      ? profile?.tagline_ko || FALLBACK.tagline_ko
-      : profile?.tagline_en || FALLBACK.tagline_en;
-  const about =
-    lang === "ko"
-      ? profile?.about_ko || FALLBACK.about_ko
-      : profile?.about_en || FALLBACK.about_en;
+  const tagline = ko ? profile?.tagline_ko || FALLBACK.tagline_ko : profile?.tagline_en || FALLBACK.tagline_en;
+  const about = ko ? profile?.about_ko || FALLBACK.about_ko : profile?.about_en || FALLBACK.about_en;
+  // the first paragraph is the lead; the rest stays markdown
+  const [lead, ...rest] = about.trim().split(/\n{2,}/);
+  const facts = (profile?.facts ?? []).filter((f) => (ko ? f.label_ko || f.label_en : f.label_en || f.label_ko));
+  const links = profile?.links ?? [];
+
+  const history = (profile?.history ?? []).filter((it) => !it.hidden);
+  const quals = (profile?.qualifications ?? []).filter((it) => !it.hidden);
+  const range = axisRange([...history, ...quals]);
 
   return (
     <>
-      {/* ─── HERO: the business card, choreographed by scroll ─── */}
+      {/* ─── HERO: the business card, out of its box, choreographed by scroll ─── */}
       <h1 className="sr-only">
         {name} — {tagline}
       </h1>
@@ -50,166 +53,175 @@ export function HomeView({
         card={cardDesign}
         lang={lang}
         tokens={{ name, tagline }}
-        scrollLabel={lang === "ko" ? "스크롤" : "Scroll"}
-        flipLabel={lang === "ko" ? "명함 뒤집기" : "Flip the card"}
+        scrollLabel={ko ? "스크롤" : "Scroll"}
+        flipLabel={ko ? "명함 뒤집기" : "Flip the card"}
       />
 
-      {/* ─── ABOUT ────────────────────────────────────────────── */}
-      <section id="about" className="border-b-2 border-ink bg-paper-2/60">
-        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-16 md:grid-cols-[1fr_1.6fr]">
-          <div>
-            <SectionLabel>{t("about_me", lang)}</SectionLabel>
-            {profile?.avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile.avatar}
-                alt={name}
-                className="mt-6 aspect-square w-full max-w-[280px] border-2 border-ink object-cover shadow-[8px_8px_0_0_var(--leaf-deep)]"
-              />
-            ) : (
-              <div className="mt-6 grid aspect-square w-full max-w-[280px] place-items-center border-2 border-ink bg-leaf shadow-[8px_8px_0_0_var(--ink)]">
-                <span className="font-display text-7xl font-semibold text-paper">
-                  {name.slice(0, 1)}
-                </span>
+      {/* ─── ABOUT: a sheet with a figure and a spec table ─── */}
+      <section id="about" className="sec">
+        <div className="wrap">
+          <div className="sec-head">
+            <h2 className="sec-title">{t("about_me", lang)}</h2>
+          </div>
+          <div className="sheet about-sheet">
+            <figure className="fig">
+              <div className="fig-box">
+                {profile?.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profile.avatar} alt={name} />
+                ) : (
+                  <div className="fig-empty">{name.slice(0, 1)}</div>
+                )}
               </div>
-            )}
-          </div>
-          <div className="pt-2">
-            <Markdown>{about}</Markdown>
+              <figcaption>
+                {ko ? "그림 1" : "Fig. 1"}. {name}
+              </figcaption>
+            </figure>
+            <div className="about-text">
+              <div className="lead">
+                <MarkdownInline>{lead ?? ""}</MarkdownInline>
+              </div>
+              {rest.length > 0 && (
+                <div className="mt-[0.9em]">
+                  <MarkdownInline>{rest.join("\n\n")}</MarkdownInline>
+                </div>
+              )}
+              {(facts.length > 0 || links.length > 0) && (
+                <dl className="kv">
+                  {facts.map((f, i) => (
+                    <FactRow key={i} label={ko ? f.label_ko || f.label_en : f.label_en || f.label_ko} value={ko ? f.value_ko || f.value_en : f.value_en || f.value_ko} />
+                  ))}
+                  {links.length > 0 && (
+                    <>
+                      <dt>{ko ? "연락" : "Contact"}</dt>
+                      <dd>
+                        {links.map((l) => (
+                          <a key={l.url} href={l.url} target={l.url.startsWith("mailto:") ? undefined : "_blank"} rel="noreferrer">
+                            {linkText(l.url)}
+                          </a>
+                        ))}
+                      </dd>
+                    </>
+                  )}
+                </dl>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ─── WORK ─────────────────────────────────────────────── */}
-      <section id="work" className="mx-auto max-w-6xl px-5 py-16">
-        <div className="mb-10 flex items-end justify-between">
-          <div>
-            <SectionLabel>{t("selected_work", lang)}</SectionLabel>
-            <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
-              {lang === "ko" ? "이제까지 만든 것들" : "Things I've built"}
-            </h2>
+      {/* ─── WORK: drawing sheets ─── */}
+      <section id="work" className="sec">
+        <div className="wrap">
+          <div className="sec-head">
+            <h2 className="sec-title">{ko ? "이제까지 만든 것들" : "Things I've built"}</h2>
+            <span className="sec-note">{ko ? `프로젝트 ${projects.length}개` : `${projects.length} projects`}</span>
           </div>
-          <span className="hidden font-mono text-sm text-ink-soft sm:block">
-            {String(projects.length).padStart(2, "0")}
-          </span>
+          {projects.length === 0 ? (
+            <p className="sheet p-10 text-center text-soft">{t("no_projects", lang)}</p>
+          ) : (
+            <div className="pj-grid">
+              {projects.map((project) => (
+                <ProjectCard key={project.slug} project={project} />
+              ))}
+            </div>
+          )}
         </div>
-
-        {projects.length === 0 ? (
-          <p className="border-2 border-dashed border-ink bg-paper p-10 text-center text-ink-soft">
-            {t("no_projects", lang)}
-          </p>
-        ) : (
-          <div className="grid gap-8 sm:grid-cols-2">
-            {projects.map((project, i) => (
-              <ProjectCard key={project.slug} project={project} index={i} />
-            ))}
-          </div>
-        )}
       </section>
 
-      {/* ─── HISTORY + QUALIFICATIONS (collapsible) ───────────── */}
-      <TimelineSection
-        id="history"
-        label={t("history", lang)}
-        heading={t("history_heading", lang)}
-        items={profile?.history ?? []}
-      />
-      <TimelineSection
-        id="qualifications"
-        label={t("qualifications", lang)}
-        heading={t("qualifications_heading", lang)}
-        items={profile?.qualifications ?? []}
-        alt
-      />
+      {/* ─── HISTORY + QUALIFICATIONS on one shared year axis ─── */}
+      <TimelineSection id="history" heading={t("history_heading", lang)} items={history} range={range} lang={lang} />
+      <TimelineSection id="qualifications" heading={t("qualifications_heading", lang)} items={quals} range={range} lang={lang} />
     </>
   );
 }
 
-/* Collapsible timeline section, reused for History and Qualifications.
-   Shows the first few entries and smoothly expands the rest via a
-   grid-rows 0fr→1fr transition. */
+function FactRow({ label, value }: { label: string; value: string }) {
+  return (
+    <>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </>
+  );
+}
+
+/** "2021 – 2023" → [2021, 2023], "2022" → [2022, 2022]. */
+function yearsOf(period: string): [number, number] | null {
+  const m = String(period).match(/(\d{4})(?:\s*[–-]\s*(\d{4}))?/);
+  return m ? [Number(m[1]), Number(m[2] || m[1])] : null;
+}
+
+function axisRange(items: HistoryItem[]): [number, number] | null {
+  const ys = items.map((i) => yearsOf(i.period)).filter((y): y is [number, number] => !!y);
+  if (ys.length === 0) return null;
+  return [Math.min(...ys.map((y) => y[0])), Math.max(...ys.map((y) => y[1]))];
+}
+
+/* A timeline sheet: period | entry | a bar on the year axis. Shows the first
+   three rows and expands the rest via a grid-rows 0fr→1fr transition. */
 function TimelineSection({
   id,
-  label,
   heading,
   items,
-  alt = false,
+  range,
+  lang,
 }: {
   id: string;
-  label: string;
   heading: string;
   items: HistoryItem[];
-  alt?: boolean;
+  range: [number, number] | null;
+  lang: Lang;
 }) {
-  const { lang } = useLang();
   const [expanded, setExpanded] = useState(false);
-
-  const visible = items.filter((it) => !it.hidden);
-  if (visible.length === 0) return null;
-
-  const VISIBLE = 3;
-  const head = visible.slice(0, VISIBLE);
-  const rest = visible.slice(VISIBLE);
-  const hasMore = rest.length > 0;
+  if (items.length === 0) return null;
+  const ko = lang === "ko";
+  const head = items.slice(0, 3);
+  const rest = items.slice(3);
+  const n = range ? range[1] - range[0] + 1 : 0;
 
   return (
-    <section
-      id={id}
-      className={`border-t-2 border-ink ${alt ? "bg-paper" : "bg-paper-2/40"}`}
-    >
-      <div className="mx-auto max-w-6xl px-5 py-12 sm:py-16">
-        <SectionLabel>{label}</SectionLabel>
-        <h2 className="mt-3 font-display text-3xl font-semibold sm:text-5xl">
-          {heading}
-        </h2>
-
-        <div className="mt-8 border-l-2 border-ink sm:mt-12">
+    <section id={id} className="sec">
+      <div className="wrap">
+        <div className="sec-head">
+          <h2 className="sec-title">{heading}</h2>
+          {range && (
+            <span className="sec-note">
+              {range[0]}–{range[1]}
+            </span>
+          )}
+        </div>
+        <div className="sheet tl-sheet">
+          {range && (
+            <div className="tl-grid tl-axis-head">
+              <span>{ko ? "기간" : "Period"}</span>
+              <span>{ko ? "항목" : "Item"}</span>
+              <div className="years" style={{ "--n": n } as React.CSSProperties}>
+                {Array.from({ length: n }, (_, i) => (
+                  <span key={i}>{String(range[0] + i).slice(2)}</span>
+                ))}
+              </div>
+            </div>
+          )}
           <ol>
             {head.map((item, i) => (
-              <TimelineItem key={i} item={item} lang={lang} />
+              <TimelineItem key={i} item={item} lang={lang} range={range} />
             ))}
           </ol>
-
-          {hasMore && (
+          {rest.length > 0 && (
             <>
-              {/* animated collapsible region */}
-              <div
-                className={`grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                  expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-                }`}
-              >
-                <div className="overflow-hidden">
-                  <ol
-                    className={`transition-opacity duration-500 ${
-                      expanded ? "opacity-100" : "opacity-0"
-                    }`}
-                  >
+              <div className="tl-rest" data-open={expanded}>
+                <div>
+                  <ol>
                     {rest.map((item, i) => (
-                      <TimelineItem key={i} item={item} lang={lang} />
+                      <TimelineItem key={i} item={item} lang={lang} range={range} />
                     ))}
                   </ol>
                 </div>
               </div>
-
-              {/* toggle sits on the timeline as its own node */}
-              <div className="relative pl-8 sm:pl-10">
-                <span className="absolute -left-[7px] top-2 h-3 w-3 rotate-45 border-2 border-ink bg-butter" />
-                <button
-                  onClick={() => setExpanded((v) => !v)}
-                  className="btn-ghost mt-1"
-                  aria-expanded={expanded}
-                >
-                  {expanded
-                    ? lang === "ko"
-                      ? "접기"
-                      : "Collapse"
-                    : lang === "ko"
-                      ? `${rest.length}개 더 보기`
-                      : `Show ${rest.length} more`}
-                  <ChevronDown
-                    size={15}
-                    className={`transition-transform duration-300 ${expanded ? "rotate-180" : ""}`}
-                  />
+              <div className="tl-foot">
+                <button type="button" onClick={() => setExpanded((v) => !v)} className="btn-more" aria-expanded={expanded}>
+                  {expanded ? (ko ? "접기" : "Collapse") : ko ? `${rest.length}개 더 보기` : `Show ${rest.length} more`}
+                  <ChevronDown size={14} className={`transition-transform duration-300 ${expanded ? "rotate-180" : ""}`} aria-hidden />
                 </button>
               </div>
             </>
@@ -220,36 +232,36 @@ function TimelineSection({
   );
 }
 
-function TimelineItem({ item, lang }: { item: HistoryItem; lang: "ko" | "en" }) {
+function TimelineItem({ item, lang, range }: { item: HistoryItem; lang: Lang; range: [number, number] | null }) {
   const title = lang === "ko" ? item.title_ko : item.title_en;
   const org = lang === "ko" ? item.org_ko : item.org_en;
   const desc = lang === "ko" ? item.desc_ko : item.desc_en;
+  const y = yearsOf(item.period);
+  const n = range ? range[1] - range[0] + 1 : 1;
   return (
-    <li className="relative pb-10 pl-8 last:pb-0 sm:pl-10">
-      <span className="absolute -left-[9px] top-1 h-4 w-4 border-2 border-ink bg-leaf" />
-      <p className="font-mono text-xs uppercase tracking-widest text-leaf-deep">
-        {item.period}
-      </p>
-      <h3 className="mt-1.5 font-display text-2xl font-semibold leading-tight">
-        {title || org || "—"}
-      </h3>
-      {org && title && (
-        <p className="mt-0.5 font-display text-lg italic text-ink-soft">{org}</p>
-      )}
-      {desc && (
-        <div className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
-          <MarkdownInline>{desc}</MarkdownInline>
+    <li className="tl-item">
+      <p className="tl-period">{item.period}</p>
+      <div>
+        <h3 className="tl-title">{title || org || "—"}</h3>
+        {org && title && <p className="tl-org">{org}</p>}
+        {desc && (
+          <div className="tl-desc">
+            <MarkdownInline>{desc}</MarkdownInline>
+          </div>
+        )}
+      </div>
+      {range ? (
+        <div className="axis" style={{ "--n": n } as React.CSSProperties} aria-hidden>
+          {y && (
+            <b
+              title={item.period}
+              style={{ "--a": `${((y[0] - range[0]) / n) * 100}%`, "--w": `${((y[1] - y[0] + 1) / n) * 100}%` } as React.CSSProperties}
+            />
+          )}
         </div>
+      ) : (
+        <span />
       )}
     </li>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-2 kicker text-leaf-deep">
-      <span className="h-2 w-2 bg-tangerine" />
-      {children}
-    </span>
   );
 }

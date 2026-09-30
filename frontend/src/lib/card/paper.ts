@@ -62,17 +62,32 @@ const RECIPES: Record<Exclude<PaperKind, "none">, Recipe> = {
   },
 };
 
-const cache = new Map<PaperKind, Promise<string | null>>();
+const cache = new Map<string, Promise<string | null>>();
 
-/** Object URL of a PAPER_TILE² texture tile (null for "none" or on the server). */
-export function paperTexture(kind: PaperKind): Promise<string | null> {
+/**
+ * Object URL of a PAPER_TILE² texture tile (null for "none" or on the server).
+ * `strength` scales the relief's alpha (page backgrounds use a faint one).
+ */
+export function paperTexture(kind: PaperKind, strength = 1): Promise<string | null> {
   if (kind === "none" || typeof document === "undefined") return Promise.resolve(null);
-  let p = cache.get(kind);
+  const key = `${kind}:${strength}`;
+  let p = cache.get(key);
   if (!p) {
-    p = build(RECIPES[kind]).catch(() => null);
-    cache.set(kind, p);
+    p = build(RECIPES[kind], strength).catch(() => null);
+    cache.set(key, p);
   }
   return p;
+}
+
+/** Sets CSS custom properties on :root to url(...) tiles, e.g. { "--tex-bg": ["paper", 0.14] }. */
+export async function applyPaperVars(map: Record<string, [PaperKind, number]>) {
+  const root = document.documentElement;
+  await Promise.all(
+    Object.entries(map).map(async ([prop, [kind, strength]]) => {
+      const url = await paperTexture(kind, strength);
+      if (url) root.style.setProperty(prop, `url("${url}")`);
+    }),
+  );
 }
 
 function rng(seed: number) {
@@ -145,7 +160,7 @@ function fibreMap(T: number, f: Recipe["fibres"], rand: () => number) {
   return out;
 }
 
-async function build(r: Recipe): Promise<string | null> {
+async function build(r: Recipe, strength = 1): Promise<string | null> {
   const T = PAPER_TILE;
   const rand = rng(r.seed);
   const h = new Float32Array(T * T);
@@ -196,16 +211,17 @@ async function build(r: Recipe): Promise<string | null> {
       const lit = (-gx * lx - gy * ly + lz) / Math.hypot(gx, gy, 1);
       const v = (lit - lz) * r.gain + mottle[y * T + x] * r.mottle;
       const o = (y * T + x) * 4;
+      // white where the tooth catches the light, cool plum-grey where it falls away
       if (v >= 0) {
         d[o] = 255;
-        d[o + 1] = 252;
-        d[o + 2] = 244;
+        d[o + 1] = 255;
+        d[o + 2] = 255;
       } else {
-        d[o] = 44;
-        d[o + 1] = 34;
-        d[o + 2] = 20;
+        d[o] = 30;
+        d[o + 1] = 29;
+        d[o + 2] = 44;
       }
-      d[o + 3] = Math.min(255, Math.abs(v) * 255);
+      d[o + 3] = Math.min(255, Math.abs(v) * 255 * strength);
     }
   }
 

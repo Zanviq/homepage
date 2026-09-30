@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { cardPose, faceAt, faceLight, type CardPose, type FaceLight } from "@/lib/card/motion";
+import { cardPose, faceAt, faceLight, smooth, type CardPose, type FaceLight } from "@/lib/card/motion";
 import type { CardDesign, FaceKey } from "@/lib/card/types";
 import type { Lang } from "@/lib/types";
-import { FaceArt, type Tokens } from "./CardArt";
+import { cardShadowCss, FaceArt, type Tokens } from "./CardArt";
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -216,17 +216,14 @@ export function CardStage({
   }, [reduced]);
 
   const aspect = card.width / card.height;
-  const widthCss = `min(90vw, 920px, calc(70svh * ${aspect.toFixed(4)}))`;
+  const widthCss = `min(74vw, 700px, calc(46svh * ${aspect.toFixed(4)}))`;
+  const box = card.scroll.intro === "box";
 
   if (reduced) {
-    // no scroll choreography: both faces, side by side / stacked, in their designed pose
+    // no scroll choreography: the front, in its designed pose
     return (
-      <section className="border-b-2 border-ink">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-10 px-5 py-16 lg:flex-row lg:justify-center">
-          {(["front", ...(card.scroll.flip ? (["back"] as const) : [])] as const).map((face) => (
-            <StaticFace key={face} card={card} face={face} lang={lang} tokens={tokens} />
-          ))}
-        </div>
+      <section className="flex justify-center px-5 pb-16 pt-24">
+        <StaticFace card={card} face="front" lang={lang} tokens={tokens} />
       </section>
     );
   }
@@ -240,18 +237,36 @@ export function CardStage({
   const endsOnBack = faceAt(cardPose(card, 1).rotateY) === "back";
   const arc = Math.sin(Math.PI * t);
   const tilt = lerp(1, 1.8, t); // the small card leans harder toward the pointer
+  const off = 1 - ease(win(t, 0, 0.5)); // the rise-out-of-the-box offset fades in flight
   const pose: CardPose = {
     rotateX: base.rotateX * (1 - t) + arc * 14 - f.hy * 6 * tilt,
     // in flight it keeps turning the same way, landing on the front
     rotateY: base.rotateY + (endsOnBack ? 180 * ease(win(t, 0.12, 0.85)) : 0) + f.spin + f.hx * 8 * tilt,
     rotateZ: lerp(base.rotateZ, -2.5 * (1 - f.hov), t) - arc * 10,
     scale: base.scale * (1 + 0.1 * f.lift + t * (0.05 * f.hov - 0.04 * f.press)),
+    x: (base.x ?? 0) * off,
+    y: (base.y ?? 0) * off,
   };
   const move = `translate3d(${geo.dx * ease(win(t, 0, 0.9))}px, ${geo.dy * ease(win(t, 0.1, 1)) - f.exit}px, 0) scale(${lerp(1, geo.s, ease(win(t, 0, 0.7)))})`;
+  // the box: lid lifts off (0–.18), tray and pile sink away (.30–.48)
+  const propsVisible = box && f.p <= 0.5 && t === 0;
+  const slotStyle = {
+    width: widthCss,
+    position: "relative",
+    containerType: "inline-size",
+    "--lid": smooth(0, 0.18, f.p).toFixed(3),
+    "--tray": smooth(0.3, 0.48, f.p).toFixed(3),
+  } as React.CSSProperties;
   return (
-    <section ref={stage} className="relative border-b-2 border-ink" style={{ height: `${Math.max(1.2, card.scroll.length) * 100}svh` }}>
-      <div ref={layer} className="pointer-events-none fixed inset-0 z-30 flex flex-col items-center justify-center px-4 pt-14">
-        <div ref={slot} style={{ width: widthCss }}>
+    <section ref={stage} className="relative" style={{ height: `${Math.max(1.2, card.scroll.length) * 100}svh` }}>
+      <div ref={layer} className="pointer-events-none fixed inset-0 z-30 flex flex-col items-center justify-center px-4 pt-[60px]">
+        <div ref={slot} style={slotStyle}>
+          {box && (
+            <>
+              <div className="card-prop card-tray" style={{ visibility: propsVisible ? undefined : "hidden" }} />
+              <div className="card-prop card-pile" style={{ visibility: propsVisible ? undefined : "hidden" }} />
+            </>
+          )}
           <div
             role={docked ? "button" : undefined}
             tabIndex={docked ? 0 : -1}
@@ -259,9 +274,10 @@ export function CardStage({
             title={docked ? flipLabel : undefined}
             className="card-dock pointer-events-auto"
             style={{
+              position: "relative",
+              zIndex: 2,
               transform: move,
               transformOrigin: "50% 50%",
-              willChange: t > 0 && t < 1 ? "transform" : undefined,
               cursor: docked ? "pointer" : undefined,
             }}
             onClick={() => docked && flip()}
@@ -296,18 +312,64 @@ export function CardStage({
               tokens={tokens}
               width="100%"
               links={!docked && t === 0}
+              docked={t > 0.5}
             />
           </div>
+          {box && (
+            <div className="card-prop card-lid" style={{ visibility: propsVisible ? undefined : "hidden" }}>
+              <BoxLabel lang={lang} name={tokens.name} />
+            </div>
+          )}
         </div>
-        <span
-          aria-hidden
-          className="mt-10 font-mono text-xs uppercase tracking-widest text-ink-soft"
-          style={{ opacity: Math.max(0, 1 - f.p * 5) * (1 - t) }}
-        >
-          {scrollLabel} ↓
-        </span>
+        <p aria-hidden className="stage-hint" style={{ opacity: Math.max(0, 1 - f.p * 5) * (1 - t) }}>
+          {scrollLabel}
+        </p>
       </div>
     </section>
+  );
+}
+
+/** The label on the card box lid: "명함 / 100매", name, size, web, and a decorative barcode. */
+function BoxLabel({ lang, name }: { lang: Lang; name: string }) {
+  const ko = lang === "ko";
+  return (
+    <div className="box-label">
+      <div className="box-label-top">
+        <b>{ko ? "명함" : "CARDS"}</b>
+        <span>{ko ? "100매" : "100 pcs"}</span>
+      </div>
+      <dl>
+        <dt>{ko ? "성명" : "Name"}</dt>
+        <dd>{name}</dd>
+        <dt>{ko ? "규격" : "Size"}</dt>
+        <dd>90 × 50 mm</dd>
+        <dt>{ko ? "웹" : "Web"}</dt>
+        <dd>zanviq.dev</dd>
+      </dl>
+      <Barcode />
+    </div>
+  );
+}
+
+// a fixed decorative pattern, not data
+const BAR_WIDTHS = [2, 1, 1, 3, 1, 2, 2, 1, 3, 1, 1, 2, 1, 3, 2, 1, 1, 1, 2, 3, 1, 2, 1, 1, 3, 2, 1, 2, 1, 1, 2, 3, 1, 1, 2, 1, 3, 1, 2, 2];
+const BARS = (() => {
+  let x = 0;
+  const bars: [number, number][] = [];
+  BAR_WIDTHS.forEach((w, i) => {
+    if (i % 2 === 0) bars.push([x, w]);
+    x += w + 0.6;
+  });
+  return { bars, width: Math.round(x) };
+})();
+
+function Barcode() {
+  return (
+    <svg viewBox={`0 0 ${BARS.width} 30`} preserveAspectRatio="none" fill="#1c1b22" aria-hidden>
+      {BARS.bars.map(([x, w]) => (
+        <rect key={x} x={x} y={0} width={w} height={30} />
+      ))}
+    </svg>
   );
 }
 
@@ -322,11 +384,14 @@ export function Card3D({
   tokens,
   width,
   links = false,
+  docked = false,
 }: {
   card: CardDesign;
   p: number;
   /** Overrides the scroll pose (the home stage adds its own flight and flips). */
   pose?: CardPose;
+  /** Small corner card: a tighter shadow. */
+  docked?: boolean;
   settle?: number;
   hover?: { x: number; y: number };
   lang: Lang;
@@ -347,8 +412,8 @@ export function Card3D({
           width: "100%",
           aspectRatio: `${card.width} / ${card.height}`,
           transformStyle: "preserve-3d",
-          transform: `rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${b.rotateZ}deg) scale(${b.scale})`,
-          willChange: "transform",
+          // no will-change: it freezes the raster and blurs the text when the card grows
+          transform: `translate(${(b.x ?? 0) * 100}%, ${(b.y ?? 0) * 100}%) rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${b.rotateZ}deg) scale(${b.scale})`,
         }}
       >
         {(["front", "back"] as const).map((face) => (
@@ -362,6 +427,7 @@ export function Card3D({
             settle={settle}
             interactive={links && showing === face}
             light={light > 0 ? faceLight(rx, ry, face) : null}
+            docked={docked}
           />
         ))}
       </div>
@@ -393,6 +459,7 @@ function ScaledFace({
   settle,
   interactive,
   light,
+  docked,
 }: {
   card: CardDesign;
   face: FaceKey;
@@ -402,6 +469,7 @@ function ScaledFace({
   settle: number;
   interactive: boolean;
   light: FaceLight | null;
+  docked: boolean;
 }) {
   const { box, scale } = useFaceScale(card.width);
   const radius = card.radius * scale;
@@ -415,7 +483,7 @@ function ScaledFace({
         position: "absolute",
         inset: 0,
         borderRadius: radius,
-        boxShadow: sh.x || sh.y ? `${sh.x * scale}px ${sh.y * scale}px 0 0 ${sh.color}` : undefined,
+        boxShadow: cardShadowCss(card, scale, docked),
         backfaceVisibility: "hidden",
         WebkitBackfaceVisibility: "hidden",
         // card (180°) + face (180°) = 360°: the back ends up facing the viewer unmirrored
@@ -434,7 +502,7 @@ function ScaledFace({
             inset: 0,
             borderRadius: radius,
             pointerEvents: "none",
-            background: `radial-gradient(130% 100% at ${light.hx}% ${light.hy}%, rgba(255,250,240,${amt * (0.1 + Math.max(0, light.tone) * 0.7)}) 0%, rgba(255,250,240,0) 62%), rgba(14,10,4,${amt * Math.max(0, -light.tone) * 0.8})`,
+            background: `radial-gradient(130% 100% at ${light.hx}% ${light.hy}%, rgba(255,255,255,${amt * (0.1 + Math.max(0, light.tone) * 0.7)}) 0%, rgba(255,255,255,0) 62%), rgba(30,26,70,${amt * Math.max(0, -light.tone) * 0.8})`,
           }}
         />
       )}
@@ -452,7 +520,7 @@ function StaticFace({ card, face, lang, tokens }: { card: CardDesign; face: Face
         width: "min(90vw, 560px)",
         aspectRatio: `${card.width} / ${card.height}`,
         borderRadius: card.radius * scale,
-        boxShadow: `${card.shadow.x * scale}px ${card.shadow.y * scale}px 0 0 ${card.shadow.color}`,
+        boxShadow: cardShadowCss(card, scale, false),
       }}
     >
       <div style={{ position: "absolute", left: 0, top: 0, width: card.width, height: card.height, transform: `scale(${scale})`, transformOrigin: "0 0" }}>

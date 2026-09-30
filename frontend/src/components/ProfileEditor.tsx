@@ -22,7 +22,7 @@ import {
   splitBlocks,
   type TranslateUnit,
 } from "@/lib/translation";
-import type { HistoryItem, Link as LinkT, Profile } from "@/lib/types";
+import type { Fact, HistoryItem, Link as LinkT, Profile } from "@/lib/types";
 
 export function ProfileEditor() {
   const { lang } = useLang();
@@ -186,7 +186,7 @@ export function ProfileEditor() {
           {profile.avatar ? (
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={profile.avatar} alt="avatar" className="aspect-square w-full border-2 border-ink object-cover shadow-[6px_6px_0_0_var(--leaf-deep)]" />
+              <img src={profile.avatar} alt="avatar" className="aspect-square w-full border-2 border-ink object-cover shadow-lift" />
               <button
                 onClick={() => set({ avatar: "" })}
                 className="absolute right-1 top-1 grid h-6 w-6 place-items-center border-2 border-ink bg-paper hover:bg-tangerine hover:text-paper"
@@ -258,7 +258,55 @@ export function ProfileEditor() {
         setItems={(q) => set({ qualifications: q })}
       />
 
+      <FactsEditor facts={profile.facts ?? []} setFacts={(f) => set({ facts: f })} />
+
       <LinksEditor links={profile.links} setLinks={(l) => set({ links: l })} />
+    </div>
+  );
+}
+
+/** Rows of the About spec table (label → value); contact links are added after them automatically. */
+function FactsEditor({ facts, setFacts }: { facts: Fact[]; setFacts: (f: Fact[]) => void }) {
+  const { lang } = useLang();
+  const ko = lang === "ko";
+  function update(i: number, key: keyof Fact, val: string) {
+    const next = [...facts];
+    next[i] = { ...next[i], [key]: val };
+    setFacts(next);
+  }
+  function move(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= facts.length) return;
+    const next = [...facts];
+    [next[i], next[j]] = [next[j], next[i]];
+    setFacts(next);
+  }
+  return (
+    <div className="mt-6 border-2 border-ink bg-paper p-4 shadow-lift">
+      <span className="field-label">{ko ? "소개 사양표 (연락처는 링크에서 자동으로 붙음)" : "About spec table (contact row comes from Links)"}</span>
+      <div className="flex flex-col gap-3">
+        {facts.map((f, i) => (
+          <div key={i} className="grid gap-2 border-b border-line pb-3 sm:grid-cols-[1fr_1fr_2fr_2fr_auto]">
+            <input className="field !py-1.5 text-sm" placeholder="항목 (KO)" value={f.label_ko} onChange={(e) => update(i, "label_ko", e.target.value)} />
+            <input className="field !py-1.5 text-sm" placeholder="Label (EN)" value={f.label_en} onChange={(e) => update(i, "label_en", e.target.value)} />
+            <input className="field !py-1.5 text-sm" placeholder="값 (KO)" value={f.value_ko} onChange={(e) => update(i, "value_ko", e.target.value)} />
+            <input className="field !py-1.5 text-sm" placeholder="Value (EN)" value={f.value_en} onChange={(e) => update(i, "value_en", e.target.value)} />
+            <div className="flex gap-1">
+              <button onClick={() => move(i, -1)} className="border-2 border-ink px-2 hover:bg-butter" aria-label="up">↑</button>
+              <button onClick={() => move(i, 1)} className="border-2 border-ink px-2 hover:bg-butter" aria-label="down">↓</button>
+              <button onClick={() => setFacts(facts.filter((_, j) => j !== i))} className="border-2 border-ink px-2 hover:bg-tangerine hover:text-paper" aria-label="remove">
+                <X size={13} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={() => setFacts([...facts, { label_ko: "", label_en: "", value_ko: "", value_en: "" }])}
+        className="mt-3 w-full border-2 border-dashed border-ink py-1.5 font-mono text-xs uppercase tracking-widest hover:bg-butter/20"
+      >
+        + {ko ? "행 추가" : "add row"}
+      </button>
     </div>
   );
 }
@@ -299,7 +347,7 @@ function EntryListEditor({
   }
 
   return (
-    <div className="mt-6 border-2 border-ink bg-paper p-4 shadow-[6px_6px_0_0_var(--ink)]">
+    <div className="mt-6 border-2 border-ink bg-paper p-4 shadow-lift">
       <span className="field-label">{label}</span>
 
       <div className="flex flex-col gap-4">
@@ -375,7 +423,7 @@ function LinksEditor({ links, setLinks }: { links: LinkT[]; setLinks: (l: LinkT[
     setLinks(next);
   }
   return (
-    <div className="mt-6 border-2 border-ink bg-paper p-4 shadow-[6px_6px_0_0_var(--ink)]">
+    <div className="mt-6 border-2 border-ink bg-paper p-4 shadow-lift">
       <span className="field-label">{t("links", lang)}</span>
       <div className="flex flex-col gap-2">
         {links.map((l, i) => (

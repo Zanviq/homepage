@@ -22,72 +22,53 @@ export function ProjectView({ project }: { project: Project }) {
   );
 
   return (
-    <article>
-      {/* header band */}
-      <header className="border-b-2 border-ink bg-paper-2/60">
-        <div className="mx-auto max-w-4xl px-5 py-12">
-          <Link
-            href="/#work"
-            className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-widest text-ink-soft hover:text-leaf-deep"
-          >
-            <ArrowLeft size={14} /> {t("all_projects", lang)}
-          </Link>
+    <article className="mx-auto max-w-4xl px-5 pb-8 pt-12">
+      <Link
+        href="/#work"
+        className="inline-flex items-center gap-1.5 font-mono text-xs text-soft hover:text-deep"
+      >
+        <ArrowLeft size={14} aria-hidden /> {t("all_projects", lang)}
+      </Link>
 
-          <h1 className="mt-6 font-display text-5xl font-semibold leading-[0.95] sm:text-6xl">
-            {title || project.slug}
-          </h1>
-
-          {summary && (
-            <p className="mt-5 max-w-2xl text-lg text-ink-soft">{summary}</p>
-          )}
-
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            {project.tags.map((tag) => (
-              <span key={tag} className="tag">
-                {tag}
-              </span>
-            ))}
-            <span className="ml-auto font-mono text-xs uppercase tracking-widest text-ink-soft">
-              {t("updated", lang)} · {updated}
+      {/* title over the ticked rule, meta in mono */}
+      <header className="mt-8">
+        <div className="sec-head !mb-5">
+          <h1 className="sec-title">{title || project.slug}</h1>
+          <span className="sec-note hidden sm:block">{project.slug}</span>
+        </div>
+        {summary && <p className="max-w-2xl text-[1.1rem] leading-relaxed text-soft">{summary}</p>}
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          {project.tags.map((tag) => (
+            <span key={tag} className="tag">
+              {tag}
             </span>
-          </div>
+          ))}
+          <span className="ml-auto font-mono text-xs text-soft">
+            {t("updated", lang)} · {updated}
+          </span>
         </div>
       </header>
 
-      {/* cover */}
       {project.cover && (
-        <div className="mx-auto max-w-4xl px-5">
+        <div className="sheet mt-10 p-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={project.cover}
-            alt={title}
-            className="-mt-0 mt-8 w-full border-2 border-ink object-cover shadow-[10px_10px_0_0_var(--ink)]"
-          />
+          <img src={project.cover} alt={title} className="w-full border border-line object-cover" />
         </div>
       )}
 
-      {/* body */}
-      <div className="mx-auto max-w-4xl px-5 py-14">
-        {body ? (
-          <Markdown>{body}</Markdown>
-        ) : (
-          <p className="text-ink-soft">—</p>
-        )}
+      <div className="py-14">
+        {body ? <Markdown>{body}</Markdown> : <p className="text-soft">—</p>}
 
         {project.links.length > 0 && (
-          <div className="mt-14 border-t-2 border-ink pt-8">
-            <span className="kicker text-leaf-deep">{t("links", lang)}</span>
-            <div className="mt-4 flex flex-wrap gap-3">
+          <div className="mt-14">
+            <div className="sec-head !mb-5">
+              <h2 className="text-lg font-semibold">{t("links", lang)}</h2>
+            </div>
+            <div className="flex flex-wrap gap-3">
               {project.links.map((link) => (
-                <a
-                  key={link.url}
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 border-2 border-ink bg-paper px-4 py-2 text-sm font-medium shadow-[3px_3px_0_0_var(--ink)] transition-transform hover:-translate-y-0.5 hover:bg-leaf hover:text-paper"
-                >
+                <a key={link.url} href={link.url} target="_blank" rel="noreferrer" className="btn-ghost">
                   {link.label}
-                  <ArrowUpRight size={14} />
+                  <ArrowUpRight size={14} aria-hidden />
                 </a>
               ))}
             </div>

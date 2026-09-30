@@ -47,7 +47,7 @@ export default function LoginPage() {
 
       <form
         onSubmit={submit}
-        className="flex flex-col gap-5 border-2 border-ink bg-paper p-7 shadow-[10px_10px_0_0_var(--ink)]"
+        className="flex flex-col gap-5 border-2 border-ink bg-paper p-7 shadow-lift"
       >
         <Field
           label={t("username", lang)}
@@ -71,7 +71,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-1 border-2 border-ink bg-ink px-5 py-3 font-mono text-sm uppercase tracking-widest text-paper shadow-[4px_4px_0_0_var(--leaf-deep)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+          className="mt-1 border-2 border-ink bg-ink px-5 py-3 font-mono text-sm uppercase tracking-widest text-paper shadow-lift transition-transform hover:-translate-y-0.5 disabled:opacity-60"
         >
           {loading ? "..." : t("sign_in", lang)}
         </button>

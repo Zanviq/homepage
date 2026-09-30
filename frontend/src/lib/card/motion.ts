@@ -67,11 +67,29 @@ export interface CardPose {
   rotateY: number;
   rotateZ: number;
   scale: number;
+  /** Offset in card widths / heights (the card rising out of its box). */
+  x?: number;
+  y?: number;
 }
 
 /** Whole-card pose at progress p: tilt while scrolling, flip to the back. */
 export function cardPose(card: CardDesign, p: number): CardPose {
   const s = card.scroll;
+  if (s.intro === "box") {
+    // lid off (0–.18), the top card rises out of the box (.14–.34), then tilts and flips
+    const rise = smooth(0.14, 0.34, p);
+    const env = Math.sin(Math.PI * smooth(0.3, 1, p));
+    const flip = s.flip ? smooth(s.flipStart, s.flipEnd, p) : 0;
+    const k = s.tilt / 11;
+    return {
+      rotateX: 11 * k * env * (0.6 - flip),
+      rotateY: 180 * flip + 8 * k * env * (1 - 0.6 * flip),
+      rotateZ: -2 * k * env * (1 - flip),
+      scale: 1 + 0.05 * rise * (1 - smooth(0.85, 1, p)),
+      x: 0,
+      y: -0.08 * rise * (1 - smooth(0.4, 0.6, p)),
+    };
+  }
   const flip = s.flip ? 180 * smooth(s.flipStart, s.flipEnd, p) : 0;
   // tilt rises in, eases through the flip and settles by the end
   const tiltEnv = Math.sin(Math.PI * clamp01(p));

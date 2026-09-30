@@ -1,28 +1,40 @@
 import type { Config } from "tailwindcss";
 
+const rgb = (name: string) => `rgb(var(--${name}-rgb) / <alpha-value>)`;
+
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        paper: "rgb(var(--paper-rgb) / <alpha-value>)",
-        "paper-2": "rgb(var(--paper-2-rgb) / <alpha-value>)",
-        ink: "rgb(var(--ink-rgb) / <alpha-value>)",
-        "ink-soft": "rgb(var(--ink-soft-rgb) / <alpha-value>)",
-        leaf: "rgb(var(--leaf-rgb) / <alpha-value>)",
-        "leaf-deep": "rgb(var(--leaf-deep-rgb) / <alpha-value>)",
-        tangerine: "rgb(var(--tangerine-rgb) / <alpha-value>)",
-        butter: "rgb(var(--butter-rgb) / <alpha-value>)",
+        paper: rgb("paper"),
+        sheet: rgb("sheet"),
+        ink: rgb("ink"),
+        soft: rgb("soft"),
+        line: rgb("line"),
+        lav: rgb("lav"),
+        deep: rgb("deep"),
+        pale: rgb("pale"),
+        // older names (admin screens), mapped onto the lavender palette
+        "paper-2": rgb("pale"),
+        "ink-soft": rgb("soft"),
+        leaf: rgb("deep"),
+        "leaf-deep": rgb("deep"),
+        tangerine: rgb("deep"),
+        butter: rgb("pale"),
       },
       fontFamily: {
-        display: ["var(--font-display)", "Georgia", "serif"],
+        ui: ["var(--font-ui)", "IBM Plex Sans KR", "system-ui", "sans-serif"],
+        display: ["var(--font-ui)", "IBM Plex Sans KR", "system-ui", "sans-serif"],
         body: ["var(--font-body)", "Pretendard", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "monospace"],
+        mono: ["var(--font-mono)", "IBM Plex Mono", "var(--font-ui)", "IBM Plex Sans KR", "monospace"],
       },
       boxShadow: {
-        block: "6px 6px 0 0 var(--ink)",
-        "block-lg": "10px 10px 0 0 var(--ink)",
-        "block-leaf": "6px 6px 0 0 var(--leaf-deep)",
+        lift: "var(--lift)",
+        // the old hard offset shadows all become the one soft shadow
+        block: "var(--lift)",
+        "block-lg": "var(--lift)",
+        "block-leaf": "var(--lift)",
       },
       keyframes: {
         "rise-in": {

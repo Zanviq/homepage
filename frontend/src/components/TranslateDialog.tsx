@@ -60,7 +60,7 @@ export function TranslateDialog({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[88vh] w-full max-w-3xl flex-col border-2 border-ink bg-paper shadow-[8px_8px_0_0_var(--ink)]"
+        className="flex max-h-[88vh] w-full max-w-3xl flex-col border-2 border-ink bg-paper shadow-lift"
       >
         {/* header */}
         <div className="flex items-center justify-between border-b-2 border-ink px-5 py-3">
