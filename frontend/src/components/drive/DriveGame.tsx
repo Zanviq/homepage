@@ -23,14 +23,13 @@ const UI = {
       ["W / ↑", "가속"],
       ["S / ↓", "브레이크 · 후진"],
       ["A D / ← →", "조향"],
-      ["Space", "사이드 브레이크 (드리프트)"],
       ["E", "표지판 · 광고판 보기"],
       ["C", "카메라 전환"],
       ["R", "도로로 복귀"],
       ["Tab", "지도"],
       ["Esc", "일시정지"],
     ],
-    gamepad: "게임패드도 지원해요 (RT 가속, LT 브레이크, A 사이드 브레이크).",
+    gamepad: "게임패드도 지원해요 (RT 가속, LT 브레이크 · 후진).",
     exit: "홈페이지로",
     found: "발견",
     newFind: "새로 발견",
@@ -47,7 +46,6 @@ const UI = {
     quality: "그래픽",
     qualities: { high: "높음", low: "낮음" } as Record<Quality, string>,
     sound: "소리",
-    assist: "주행 보조",
     on: "켜짐",
     off: "꺼짐",
     language: "언어",
@@ -66,7 +64,6 @@ const UI = {
     kmh: "km/h",
     gas: "가속",
     brake: "브레이크",
-    hand: "사이드",
     startIntro: "출발 지점이에요. 길을 따라가면 연도별 이력, 프로젝트 광고판, 호숫가 전망대가 차례로 나와요.",
   },
   en: {
@@ -80,14 +77,13 @@ const UI = {
       ["W / ↑", "Throttle"],
       ["S / ↓", "Brake / reverse"],
       ["A D / ← →", "Steer"],
-      ["Space", "Handbrake (drift)"],
       ["E", "Read a sign or billboard"],
       ["C", "Change camera"],
       ["R", "Back to the road"],
       ["Tab", "Map"],
       ["Esc", "Pause"],
     ],
-    gamepad: "Gamepads work too (RT throttle, LT brake, A handbrake).",
+    gamepad: "Gamepads work too (RT throttle, LT brake / reverse).",
     exit: "Back to site",
     found: "Found",
     newFind: "Discovered",
@@ -104,7 +100,6 @@ const UI = {
     quality: "Graphics",
     qualities: { high: "High", low: "Low" } as Record<Quality, string>,
     sound: "Sound",
-    assist: "Stability assist",
     on: "On",
     off: "Off",
     language: "Language",
@@ -123,7 +118,6 @@ const UI = {
     kmh: "km/h",
     gas: "Gas",
     brake: "Brake",
-    hand: "Handbrake",
     startIntro: "This is the start line. Follow the road for the timeline, the project billboards and the lakeside lookout.",
   },
 };
@@ -142,7 +136,6 @@ function defaultSettings(lang: Lang): GameSettings {
     timeOfDay: "dusk",
     quality: coarse || (lowMem !== undefined && lowMem <= 4) ? "low" : "high",
     sound: true,
-    assist: true,
     carColor: CAR_COLORS[0].hex,
   };
 }
@@ -361,16 +354,13 @@ export default function DriveGame({ content, fontFamily }: { content: DriveConte
     if (patch.quality) g.setQuality(patch.quality);
     if (patch.carColor) g.setCarColor(patch.carColor);
     if (patch.sound !== undefined) g.setSound(patch.sound);
-    if (patch.assist !== undefined) g.setAssist(patch.assist);
     if (patch.lang) setLang(patch.lang);
     saveSettings(s);
   };
 
-  const touch = (key: "throttle" | "brake" | "handbrake", v: boolean) => {
+  const touch = (key: "throttle" | "brake", v: boolean) => {
     const g = gameRef.current;
-    if (!g) return;
-    if (key === "handbrake") g.input.touch.handbrake = v;
-    else g.input.touch[key] = v ? 1 : 0;
+    if (g) g.input.touch[key] = v ? 1 : 0;
   };
 
   const steerPad = useRef<HTMLDivElement>(null);
@@ -475,7 +465,7 @@ export default function DriveGame({ content, fontFamily }: { content: DriveConte
         {hint && !coarse && phase === "play" && (
           <div className="drive-panel absolute bottom-7 left-6 hidden max-w-[300px] px-4 py-3 text-xs leading-relaxed text-white/80 sm:block">
             <ul className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-              {t.keys.slice(0, 7).map(([k, v]) => (
+              {t.keys.slice(0, 6).map(([k, v]) => (
                 <li key={k} className="contents">
                   <kbd className="justify-self-start">{k}</kbd>
                   <span>{v}</span>
@@ -502,24 +492,14 @@ export default function DriveGame({ content, fontFamily }: { content: DriveConte
             <span aria-hidden>▶</span>
           </div>
           <div className="flex shrink-0 items-end gap-2">
-            <div className="flex flex-col gap-2">
-              <button
-                className="drive-touch h-[48px] w-[72px] text-[11px]"
-                onPointerDown={() => touch("handbrake", true)}
-                onPointerUp={() => touch("handbrake", false)}
-                onPointerCancel={() => touch("handbrake", false)}
-              >
-                {t.hand}
-              </button>
-              <button
-                className="drive-touch h-[76px] w-[72px] text-sm"
-                onPointerDown={() => touch("brake", true)}
-                onPointerUp={() => touch("brake", false)}
-                onPointerCancel={() => touch("brake", false)}
-              >
-                {t.brake}
-              </button>
-            </div>
+            <button
+              className="drive-touch h-[132px] w-[72px] text-sm"
+              onPointerDown={() => touch("brake", true)}
+              onPointerUp={() => touch("brake", false)}
+              onPointerCancel={() => touch("brake", false)}
+            >
+              {t.brake}
+            </button>
             <button
               className="drive-touch h-[132px] w-[78px] bg-[#ff6a13]/70 text-sm"
               onPointerDown={() => touch("throttle", true)}
@@ -560,7 +540,7 @@ export default function DriveGame({ content, fontFamily }: { content: DriveConte
                 </button>
                 <div className="text-xs leading-relaxed text-white/70">
                   <ul className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-                    {(coarse ? t.keys.slice(4, 5) : t.keys).map(([k, v]) => (
+                    {(coarse ? t.keys.filter(([k]) => k === "E") : t.keys).map(([k, v]) => (
                       <li key={k} className="contents">
                         <kbd className="justify-self-start">{k}</kbd>
                         <span>{v}</span>
@@ -667,14 +647,6 @@ export default function DriveGame({ content, fontFamily }: { content: DriveConte
                   {t.on}
                 </Seg>
                 <Seg active={!s.sound} onClick={() => update({ sound: false })}>
-                  {t.off}
-                </Seg>
-              </Row>
-              <Row label={t.assist}>
-                <Seg active={s.assist} onClick={() => update({ assist: true })}>
-                  {t.on}
-                </Seg>
-                <Seg active={!s.assist} onClick={() => update({ assist: false })}>
                   {t.off}
                 </Seg>
               </Row>

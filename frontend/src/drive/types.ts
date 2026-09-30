@@ -34,6 +34,8 @@ export interface Poi {
   /** World position of the sign/board (x, z) used for proximity. */
   x: number;
   z: number;
+  /** Within this distance (m) the car discovers it and can open it. */
+  reach: number;
   year?: number;
   entries?: HistoryItem[];
   project?: DriveProject;
@@ -60,7 +62,6 @@ export interface GameSettings {
   timeOfDay: TimeOfDay;
   quality: Quality;
   sound: boolean;
-  assist: boolean;
   carColor: string;
 }
 

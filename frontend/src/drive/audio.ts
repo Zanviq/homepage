@@ -120,7 +120,8 @@ export class CarAudio {
     this.master.gain.setTargetAtTime(m ? 0 : 0.55, this.ctx.currentTime, 0.05);
   }
 
-  update(rpm: number, throttle: number, gear: number, speed: number, slip: number, offRoad: boolean) {
+  /** skid: 0..1, tyres at the limit under hard braking */
+  update(rpm: number, throttle: number, gear: number, speed: number, skid: number, offRoad: boolean) {
     if (this.muted) return;
     const t = this.ctx.currentTime;
     const f = (rpm / 60) * 4; // V8 firing frequency
@@ -140,8 +141,8 @@ export class CarAudio {
     } else {
       this.engineGain.gain.setTargetAtTime(vol, t, 0.06);
     }
-    this.squealGain.gain.setTargetAtTime(Math.max(0, slip - 0.25) * (offRoad ? 0.04 : 0.32) * Math.min(1, speed / 6), t, 0.05);
-    this.squealFilter.frequency.setTargetAtTime(1100 + slip * 500, t, 0.1);
+    this.squealGain.gain.setTargetAtTime(Math.max(0, skid - 0.25) * (offRoad ? 0.04 : 0.32) * Math.min(1, speed / 6), t, 0.05);
+    this.squealFilter.frequency.setTargetAtTime(1100 + skid * 500, t, 0.1);
     this.windGain.gain.setTargetAtTime(Math.min(0.28, (speed / 70) ** 2 * 0.3), t, 0.1);
     this.rumbleGain.gain.setTargetAtTime(offRoad ? Math.min(0.5, speed / 25) * 0.5 : 0, t, 0.08);
     vol = 0;

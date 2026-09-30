@@ -270,6 +270,17 @@ export class Game {
     const delin = buildDelineators(this.track, this.terrain, (sv) => sv < 30 || inRail(sv) || Math.abs(sv - padS) < 40);
     this.reflectors = delin.userData.reflectors as THREE.InstancedMesh;
     s.add(delin);
+
+    this.signs = buildSigns(this.track, this.terrain, this.content, this.fonts, this.pad, this.colliders);
+    this.pois = this.signs.pois;
+    s.add(this.signs.group);
+    // no street light in front of (or through) a gantry
+    const L = this.track.length;
+    const nearGantry = (sv: number) =>
+      this.signs.gantries.some((g) => {
+        const d = (((sv - g) % L) + L) % L;
+        return Math.min(d, L - d) < 10;
+      });
     this.lamps = buildStreetLights(
       this.track,
       this.terrain,
@@ -278,6 +289,7 @@ export class Game {
         [padS - 70, padS + 70, 35],
       ],
       this.colliders,
+      nearGantry,
     );
     s.add(this.lamps.group);
     for (let k = 0; k < 4; k++) {
@@ -285,15 +297,11 @@ export class Game {
       this.lampPool.push(l);
       s.add(l);
     }
-
-    this.signs = buildSigns(this.track, this.terrain, this.content, this.fonts, this.pad, this.colliders);
-    this.pois = this.signs.pois;
-    s.add(this.signs.group);
     ev.progress(0.7, "signs");
     await frame();
 
     const keepClear = [
-      ...this.pois.map((p) => ({ x: p.x, z: p.z, r: p.kind === "project" ? 17 : p.kind === "about" ? 14 : 6 })),
+      ...this.signs.clear,
       ...this.lamps.heads.map((h) => ({ x: h.x, z: h.z, r: 4 })),
       { x: this.track.px[0], z: this.track.pz[0], r: 30 },
     ];
@@ -353,7 +361,6 @@ export class Game {
 
     this.buildMinimapBase();
     this.applyTime(this.settings.timeOfDay);
-    this.physics.assist = this.settings.assist;
     this.physics.onImpact = (e) => {
       this.rig.addShake(Math.min(1, e.speed / 12));
       this.audio?.impact(e.speed);
@@ -608,11 +615,6 @@ export class Game {
     this.car.setColor(hex);
   }
 
-  setAssist(on: boolean) {
-    this.settings.assist = on;
-    this.physics.assist = on;
-  }
-
   setSound(on: boolean) {
     this.settings.sound = on;
     this.audio?.setMuted(!on);
@@ -690,7 +692,9 @@ export class Game {
   }
 
   teleport(poi: Poi) {
-    this.placeAtS(poi.s - (poi.kind === "project" ? 55 : 35));
+    // far enough back that the whole sign is in view, but never back across the start line
+    const back = poi.kind === "project" ? 110 : 70;
+    this.placeAtS(Math.max(poi.s - back, Math.min(poi.s, 20)));
   }
 
   // ── loop ───────────────────────────────────────────────────────────────
@@ -719,7 +723,7 @@ export class Game {
       this.gameLogic(dt);
     }
 
-    const braking = (p.vx > 0.5 && c.brake > 0.1) || (p.vx < -0.5 && c.throttle > 0.1) || c.handbrake;
+    const braking = (p.vx > 0.5 && c.brake > 0.1) || (p.vx < -0.5 && c.throttle > 0.1);
     this.car.update(p, braking ? 1 : 0, dt);
     this.rig.update(dt, p, this.car.root, (x, z) => this.groundHeight(x, z), p.surface.kind === "road" ? 0 : 1);
 
@@ -743,7 +747,7 @@ export class Game {
       this.updateLampPool();
     }
     if (this.audio && this.running) {
-      this.audio.update(p.rpm, active ? p.throttleOut : 0, p.gear, p.speed, Math.max(p.slipRear, p.slipFront), p.surface.kind !== "road");
+      this.audio.update(p.rpm, active ? p.throttleOut : 0, p.gear, p.speed, p.skid, p.surface.kind !== "road");
     }
     this.updateHud();
     if (this.frameNo % 2 === 0) this.drawMinimap();
@@ -758,8 +762,7 @@ export class Game {
     let nearD = Infinity;
     for (const poi of this.pois) {
       const d = Math.hypot(poi.x - p.x, poi.z - p.z);
-      const reach = poi.kind === "project" ? 38 : poi.kind === "about" ? 30 : poi.kind === "start" ? 24 : 26;
-      if (d < reach && !this.discovered.has(poi.id)) {
+      if (d < poi.reach && !this.discovered.has(poi.id)) {
         this.discovered.add(poi.id);
         try {
           localStorage.setItem(DISCOVER_KEY, JSON.stringify([...this.discovered]));
@@ -768,7 +771,7 @@ export class Game {
         }
         this.events.discover(poi, this.discovered.size, this.pois.length);
       }
-      if (d < reach && d < nearD) {
+      if (d < poi.reach && d < nearD) {
         near = poi;
         nearD = d;
       }
@@ -825,23 +828,13 @@ export class Game {
     const wheels = [...this.car.rearWheels, ...this.car.frontWheels];
     wheels.forEach((w, k) => {
       const wp = this.car.worldPoint(w, this.tmpV);
-      const slip = k < 2 ? p.slipRear : p.slipFront;
       wp.y = this.groundHeight(wp.x, wp.z) + 0.028;
-      if (speed > 2 || (k < 2 && p.wheelspin > 0.3)) this.skid.add(k, wp, side, onRoad ? slip : Math.min(1, speed / 12) * 0.5, onRoad);
-      else this.skid.add(k, wp, side, 0, onRoad);
-      // tyre smoke on tarmac, dust off it, spray in water
+      // marks on tarmac only from hard braking; tracks in the dirt off it
+      const mark = speed > 2 ? (onRoad ? p.skid : Math.min(1, speed / 12) * 0.5) : 0;
+      this.skid.add(k, wp, side, mark, onRoad);
+      // dust off the road, spray in water
       const r = this.rand;
-      if (onRoad && k < 2 && slip > 0.45 && r() < 0.55) {
-        this.particles.emit(
-          wp.clone().add(new THREE.Vector3(0, 0.25, 0)),
-          new THREE.Vector3((r() - 0.5) * 1.5, 0.6 + r(), (r() - 0.5) * 1.5),
-          new THREE.Color(0.78, 0.78, 0.8),
-          1.1 + r() * 0.8,
-          1.4 + r(),
-          0.26 * slip,
-          2.6,
-        );
-      } else if (!onRoad && surf !== "water" && speed > 4 && r() < Math.min(0.5, speed / 40)) {
+      if (!onRoad && surf !== "water" && speed > 4 && r() < Math.min(0.5, speed / 40)) {
         this.particles.emit(
           wp.clone().add(new THREE.Vector3(0, 0.2, 0)),
           new THREE.Vector3((r() - 0.5) * 2, 0.5 + r() * 0.8, (r() - 0.5) * 2),

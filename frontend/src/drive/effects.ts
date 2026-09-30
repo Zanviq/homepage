@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 const MAX_MARKS = 2400;
 
-/** Tyre marks left on the ground while a wheel slides. */
+/** Tyre marks: braking lock-ups on tarmac, tracks through the dirt. */
 export class SkidMarks {
   readonly mesh: THREE.Mesh;
   private pos: Float32Array;
@@ -128,7 +128,7 @@ interface Particle {
   color: THREE.Color;
 }
 
-/** Tyre smoke, dust and spray. */
+/** Dust and spray thrown up by the wheels. */
 export class Particles {
   readonly points: THREE.Points;
   private parts: Particle[] = [];

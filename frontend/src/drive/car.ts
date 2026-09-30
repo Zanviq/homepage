@@ -197,7 +197,7 @@ export class CarVisual {
 
     for (const w of this.wheels) {
       w.pivot.rotation.y = w.front ? p.steerAngle : 0;
-      w.wheel.rotation.x = -Math.PI / 2 + (w.front ? p.frontSpin : p.rearSpin) * -1;
+      w.wheel.rotation.x = -Math.PI / 2 - p.wheelSpin;
     }
     if (this.steering) {
       const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -p.steerAngle * 5.5);
