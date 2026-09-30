@@ -46,7 +46,7 @@ Drive up to a sign and press **E** (or tap the prompt) to read it.
 - Covers are loaded as `/api/media/...?w=1024` — the backend serves cached
   WebP thumbnails for `?w=256|512|1024` (Pillow, cached under
   `/data/.cache/thumbs`).
-- Keyboard (WASD/arrows, Space, E, C, R, Tab, Esc), gamepads and on-screen
+- Keyboard (WASD/arrows, E, C, R, Tab, Esc), gamepads and on-screen
   touch controls are supported; quality is auto-picked and resolution adapts
   to the frame rate.
 

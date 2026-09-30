@@ -21,14 +21,13 @@ export interface TouchState {
   throttle: number;
   brake: number;
   steer: number;
-  handbrake: boolean;
 }
 
 /** Keyboard + gamepad + on-screen touch, merged into smoothed car controls. */
 export class Input {
   private keys = new Set<string>();
-  readonly touch: TouchState = { throttle: 0, brake: 0, steer: 0, handbrake: false };
-  readonly controls: Controls = { throttle: 0, brake: 0, steer: 0, handbrake: false };
+  readonly touch: TouchState = { throttle: 0, brake: 0, steer: 0 };
+  readonly controls: Controls = { throttle: 0, brake: 0, steer: 0 };
   enabled = true;
   onAction?: (a: Action) => void;
   private padButtons: boolean[] = [];
@@ -42,6 +41,7 @@ export class Input {
       if (!e.repeat) this.onAction?.(action);
       return;
     }
+    // Space has no binding, but it must not click whichever HUD button has focus
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) e.preventDefault();
     this.keys.add(e.code);
   };
@@ -67,7 +67,6 @@ export class Input {
     let throttle = k.has("KeyW") || k.has("ArrowUp") ? 1 : 0;
     let brake = k.has("KeyS") || k.has("ArrowDown") ? 1 : 0;
     let steer = (k.has("KeyA") || k.has("ArrowLeft") ? 1 : 0) - (k.has("KeyD") || k.has("ArrowRight") ? 1 : 0);
-    let handbrake = k.has("Space");
     let analogSteer = false;
 
     const pads = typeof navigator !== "undefined" && navigator.getGamepads ? navigator.getGamepads() : [];
@@ -82,7 +81,6 @@ export class Input {
         steer = -Math.sign(sx) * ((Math.abs(sx) - 0.12) / 0.88) ** 1.4;
         analogSteer = true;
       }
-      if (pad.buttons[0]?.pressed || pad.buttons[1]?.pressed) handbrake = true;
       const map: [number, Action][] = [
         [3, "camera"],
         [2, "interact"],
@@ -104,13 +102,11 @@ export class Input {
       steer = t.steer;
       analogSteer = true;
     }
-    if (t.handbrake) handbrake = true;
 
     if (!this.enabled) {
       throttle = 0;
       brake = speed > 1 ? 0.6 : 0;
       steer = 0;
-      handbrake = false;
     }
 
     const c = this.controls;
@@ -122,7 +118,6 @@ export class Input {
     }
     c.throttle += clamp(throttle - c.throttle, -8 * dt, 5 * dt);
     c.brake += clamp(brake - c.brake, -10 * dt, 7 * dt);
-    c.handbrake = handbrake;
     return c;
   }
 }

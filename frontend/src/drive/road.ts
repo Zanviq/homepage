@@ -311,12 +311,13 @@ export interface StreetLights {
   heads: THREE.Vector3[];
 }
 
-/** Cobra-head street lights; lamp heads glow at dusk/night. */
+/** Cobra-head street lights; lamp heads glow at dusk/night. `skip(s)` leaves a gap (e.g. at a gantry). */
 export function buildStreetLights(
   track: Track,
   terrain: Terrain,
   ranges: [number, number, number][],
   colliders: Colliders,
+  skip: (s: number) => boolean = () => false,
 ): StreetLights {
   const poleGeo = new THREE.CylinderGeometry(0.1, 0.16, 9, 8);
   poleGeo.translate(0, 4.5, 0);
@@ -334,7 +335,8 @@ export function buildStreetLights(
   const heads: THREE.Vector3[] = [];
   for (const [s0, s1, step] of ranges) {
     let side = 1;
-    for (let s = s0; s <= s1; s += step) {
+    for (let s = s0; s <= s1; s += step, side = -side) {
+      if (skip(s)) continue;
       const i = track.indexAt(s);
       const off = ROAD_HALF + 2.9;
       const lx = track.leftX(i) * side;
@@ -352,7 +354,6 @@ export function buildStreetLights(
       mats.push(m);
       heads.push(new THREE.Vector3(-2.55, 8.6, 0).applyMatrix4(m));
       colliders.addCircle(x, z, 0.28, "pole");
-      side = -side;
     }
   }
   const group = new THREE.Group();

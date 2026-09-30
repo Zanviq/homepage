@@ -126,6 +126,17 @@ function shield(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, 
 
 // ── sign objects ──────────────────────────────────────────────────────────
 
+/**
+ * Every readable sign is built at this multiple of its original size, text
+ * included; placement (road offsets, clearances, trigger ranges) follows.
+ */
+export const SIGN_SCALE = 2;
+const S = SIGN_SCALE;
+
+/** Inner edge of roadside signs, measured from the road centreline: clear of
+ *  the shoulder, delineators (ROAD_HALF + 2.4) and lamp posts (ROAD_HALF + 2.9). */
+const ROADSIDE_EDGE = ROAD_HALF + 3.3;
+
 interface SignFace {
   canvas: HTMLCanvasElement;
   texture: THREE.CanvasTexture;
@@ -137,6 +148,10 @@ interface SignFace {
 export interface SignSystem {
   group: THREE.Group;
   pois: Poi[];
+  /** Arc lengths of the gantries spanning the road (keep lamps away from them). */
+  gantries: number[];
+  /** Ground the vegetation must leave free around signs and their sight lines. */
+  clear: { x: number; z: number; r: number }[];
   setLang(lang: Lang): void;
   setGlow(signs: number, boards: number): void;
   ready: Promise<void>;
@@ -198,6 +213,13 @@ function post(h: number, w = 0.28) {
   return m;
 }
 
+/** World (x, z) of a point at local offset (dx, dz) of an object at (x, z) turned by yaw. */
+function local(x: number, z: number, yaw: number, dx: number, dz: number) {
+  const c = Math.cos(yaw);
+  const s = Math.sin(yaw);
+  return { x: x + c * dx + s * dz, z: z - s * dx + c * dz };
+}
+
 function coverUrl(url: string) {
   return url.startsWith("/api/media/") ? `${url}?w=1024` : url;
 }
@@ -213,10 +235,32 @@ export function buildSigns(
   const group = new THREE.Group();
   const faces: SignFace[] = [];
   const pois: Poi[] = [];
+  const gantries: number[] = [];
+  const clear: SignSystem["clear"] = [];
   const F = `${fonts.latin}, ${fonts.korean}, sans-serif`;
   const FK = `${fonts.korean}, ${fonts.latin}, sans-serif`;
   const fam = (lang: Lang) => (lang === "ko" ? FK : F);
   const years = entriesByYear(content);
+
+  /** Highest ground under a panel of width w centred at (x, z), turned by yaw. */
+  const groundUnder = (x: number, z: number, yaw: number, w: number) => {
+    let h = -Infinity;
+    for (let k = 0; k <= 6; k++) {
+      const p = local(x, z, yaw, (k / 6 - 0.5) * w, 0);
+      h = Math.max(h, terrain.heightAt(p.x, p.z));
+    }
+    return h;
+  };
+  /** A post at local (dx, dz) of a sign, standing on its own patch of ground and reaching world height `top`. */
+  const leg = (x: number, z: number, yaw: number, dx: number, dz: number, top: number, w: number, sink = 0.2) => {
+    const p = local(x, z, yaw, dx, dz);
+    const ground = terrain.heightAt(p.x, p.z);
+    const m = post(Math.max(0.5, top - ground + sink), w);
+    m.position.set(p.x, ground - sink, p.z);
+    m.rotation.y = yaw;
+    group.add(m);
+    return { m, x: p.x, z: p.z };
+  };
 
   // ── layout along the road ──
   const GANTRY_S = 55;
@@ -231,37 +275,40 @@ export function buildSigns(
   const projEnd = track.length * 0.8;
   const projStep = (projEnd - projStart) / Math.max(1, content.projects.length - 1);
 
-  // ── gantry helper ──
-  const gantry = (si: number, w: number, h: number, face: SignFace, clearance = 6.2) => {
+  // ── gantry helper: w × h panel over the road, its lower edge `clearance` above it ──
+  const gantry = (si: number, w: number, h: number, face: SignFace, clearance: number) => {
     const i = track.indexAt(si);
-    const g = new THREE.Group();
-    const span = ROAD_HALF + 2.2;
+    const yaw = faceYaw(track, i);
+    const postW = 0.34 * S;
+    const beamT = 0.22 * S;
+    // posts just outside the panel's ends, never on the shoulder
+    const span = Math.max(ROAD_HALF + 2.2, w / 2 + postW);
     const y0 = track.py[i];
-    const topY = clearance + h;
+    // stay clear of rising ground at the panel's ends (and always of the car)
+    const lift = Math.max(clearance, groundUnder(track.px[i], track.pz[i], yaw, w) - y0 + 1.5);
+    const topY = lift + h;
     for (const side of [1, -1]) {
-      const x = track.px[i] + track.leftX(i) * span * side;
-      const z = track.pz[i] + track.leftZ(i) * span * side;
-      const ground = terrain.heightAt(x, z);
-      const p = post(topY - (ground - y0) + 0.4, 0.34);
-      p.position.set(x, ground - 0.2, z);
-      group.add(p);
-      colliders.addCircle(x, z, 0.35, "sign");
+      const p = leg(track.px[i], track.pz[i], yaw, span * side, 0, y0 + topY + 0.2, postW);
+      colliders.addCircle(p.x, p.z, postW * 0.75, "sign");
     }
-    // truss beams across
-    const beamLen = span * 2 + 0.4;
-    for (const dy of [clearance + 0.25, clearance + h - 0.25]) {
-      const b = new THREE.Mesh(new THREE.BoxGeometry(beamLen, 0.22, 0.22), metalMat);
+    // truss beams across, just behind the panel against the posts
+    const beamLen = span * 2 + postW;
+    for (const dy of [lift + beamT, lift + h - beamT]) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(beamLen, beamT, beamT), metalMat);
       b.castShadow = true;
       b.position.set(track.px[i], y0 + dy, track.pz[i]);
-      b.rotation.y = faceYaw(track, i);
-      b.translateZ(-0.45);
+      b.rotation.y = yaw;
+      b.translateZ(-(postW + beamT) / 2);
       group.add(b);
     }
-    const panel = facePanel(face, w, h);
-    panel.position.set(track.px[i], y0 + clearance + h / 2, track.pz[i]);
-    panel.rotation.y = faceYaw(track, i);
+    const panel = facePanel(face, w, h, 0.14 * S);
+    panel.position.set(track.px[i], y0 + lift + h / 2, track.pz[i]);
+    panel.rotation.y = yaw;
     group.add(panel);
-    return { i, g };
+    gantries.push(si);
+    // trees keep off the ends: crowns are several metres wide
+    clear.push({ x: track.px[i], z: track.pz[i], r: span + 10 });
+    return i;
   };
 
   // ── start gantry ──
@@ -312,8 +359,8 @@ export function buildSigns(
     });
   });
   faces.push(startFace);
-  const g0 = gantry(GANTRY_S, 12.4, 5.45, startFace);
-  pois.push({ id: "start", kind: "start", s: GANTRY_S, x: track.px[g0.i], z: track.pz[g0.i] });
+  const g0 = gantry(GANTRY_S, 12.4 * S, 5.45 * S, startFace, 6.2);
+  pois.push({ id: "start", kind: "start", s: GANTRY_S, x: track.px[g0], z: track.pz[g0], reach: 24 * S });
 
   // ── year gantries + entry plates ──
   for (const ys of yearStops) {
@@ -336,13 +383,14 @@ export function buildSigns(
       arrow(ctx, x + 44, 440, 96, 0);
     });
     faces.push(face);
-    const gy = gantry(ys.s, 8.4, 3.72, face, 6.0);
+    const gi = gantry(ys.s, 8.4 * S, 3.72 * S, face, 6.0);
     pois.push({
       id: `year-${ys.year}`,
       kind: "year",
       s: ys.s,
-      x: track.px[gy.i],
-      z: track.pz[gy.i],
+      x: track.px[gi],
+      z: track.pz[gi],
+      reach: 26 * S,
       year: ys.year,
       entries: ys.entries,
     });
@@ -351,10 +399,14 @@ export function buildSigns(
       const side = k % 2 === 0 ? -1 : 1;
       const si = ys.s + 30 + k * 13;
       const i = track.indexAt(si);
-      const off = ROAD_HALF + 3.4;
+      const pw = 2.9 * S;
+      const ph = 1.9 * S;
+      const turn = 0.22;
+      const off = ROADSIDE_EDGE + (pw / 2) * Math.cos(turn);
       const x = track.px[i] + track.leftX(i) * off * side;
       const z = track.pz[i] + track.leftZ(i) * off * side;
-      const ground = terrain.heightAt(x, z);
+      const yaw = faceYaw(track, i, side * turn);
+      const bottom = groundUnder(x, z, yaw, pw) + 2.4;
       const plate = makeFace(760, 500, (ctx, lang) => {
         const w = 760;
         const h = 500;
@@ -382,19 +434,16 @@ export function buildSigns(
         ctx.globalAlpha = 1;
       });
       faces.push(plate);
-      const panel = facePanel(plate, 2.9, 1.9, 0.08);
-      panel.position.set(x, ground + 2.35 + 0.95, z);
-      panel.rotation.y = faceYaw(track, i, side * 0.22);
+      const depth = 0.08 * S;
+      const panel = facePanel(plate, pw, ph, depth);
+      panel.position.set(x, bottom + ph / 2, z);
+      panel.rotation.y = yaw;
       group.add(panel);
-      for (const dx of [-0.9, 0.9]) {
-        const p = post(3.4, 0.09);
-        p.position.set(x, ground - 0.2, z);
-        p.rotation.y = panel.rotation.y;
-        p.translateX(dx);
-        p.translateZ(-0.07);
-        group.add(p);
-      }
-      colliders.addCircle(x, z, 1.0, "sign");
+      const postW = 0.09 * S;
+      const legs = [-0.9 * S, 0.9 * S].map((dx) => leg(x, z, yaw, dx, -(depth + postW) / 2, bottom + ph / 2, postW));
+      // one wall between the legs: the car can't squeeze under the plate
+      colliders.addSegment(legs[0].x, legs[0].z, legs[1].x, legs[1].z, "sign");
+      clear.push({ x, z, r: pw / 2 + 6 });
     });
   }
 
@@ -406,10 +455,14 @@ export function buildSigns(
     // put boards on the outside of the bend so they're in view
     const bend = track.curvature[i];
     const side = Math.abs(bend) > 0.002 ? (bend > 0 ? -1 : 1) : k % 2 ? 1 : -1;
-    const off = ROAD_HALF + 13;
+    const W = 13.6 * S;
+    const H = 9.35 * S;
+    const turn = 0.42;
+    // inner edge stays 6.8 m off the asphalt, as it was at the original size
+    const off = ROAD_HALF + 6.8 + (W / 2) * Math.cos(turn);
     const x = track.px[i] + track.leftX(i) * off * side;
     const z = track.pz[i] + track.leftZ(i) * off * side;
-    const ground = terrain.heightAt(x, z);
+    const yaw = faceYaw(track, i, side * turn);
     const img = new Image();
     let ok = false;
     images.push(
@@ -473,41 +526,35 @@ export function buildSigns(
       "board",
     );
     faces.push(face);
-    const W = 13.6;
-    const H = 9.35;
-    const lift = 3.4;
-    const yaw = faceYaw(track, i, side * 0.42);
-    const panel = facePanel(face, W, H, 0.3);
-    panel.position.set(x, ground + lift + H / 2, z);
+    // lifted off the ground at its centre, but never within 2 m of a slope under either end
+    const bottom = Math.max(terrain.heightAt(x, z) + 3.4 * S, groundUnder(x, z, yaw, W) + 2);
+    const panel = facePanel(face, W, H, 0.3 * S);
+    panel.position.set(x, bottom + H / 2, z);
     panel.rotation.y = yaw;
     group.add(panel);
     // legs, catwalk and lamp arms
     for (const dx of [-W * 0.3, W * 0.3]) {
-      const leg = post(lift + H * 0.6, 0.45);
-      leg.material = darkMetal;
-      leg.position.set(x, ground - 0.5, z);
-      leg.rotation.y = yaw;
-      leg.translateX(dx);
-      leg.translateZ(-0.5);
-      group.add(leg);
-      const lp = leg.position;
-      colliders.addCircle(lp.x, lp.z, 0.5, "sign");
+      const l = leg(x, z, yaw, dx, -0.5 * S, bottom + H * 0.6 - 0.5 * S, 0.45 * S, 0.5 * S);
+      l.m.material = darkMetal;
+      colliders.addCircle(l.x, l.z, 0.65, "sign");
     }
-    const walk = new THREE.Mesh(new THREE.BoxGeometry(W, 0.12, 1.0), darkMetal);
-    walk.position.set(x, ground + lift - 0.1, z);
+    const walk = new THREE.Mesh(new THREE.BoxGeometry(W, 0.12 * S, 1.0 * S), darkMetal);
+    walk.position.set(x, bottom - 0.1 * S, z);
     walk.rotation.y = yaw;
-    walk.translateZ(0.5);
+    walk.translateZ(0.5 * S);
     walk.castShadow = true;
     group.add(walk);
     for (let q = 0; q < 4; q++) {
-      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.22, 0.3), darkMetal);
-      lamp.position.set(x, ground + lift - 0.05, z);
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.5 * S, 0.22 * S, 0.3 * S), darkMetal);
+      lamp.position.set(x, bottom - 0.05 * S, z);
       lamp.rotation.y = yaw;
-      lamp.translateX(-W / 2 + W * (q + 0.5) / 4);
-      lamp.translateZ(1.2);
+      lamp.translateX(-W / 2 + (W * (q + 0.5)) / 4);
+      lamp.translateZ(1.2 * S);
       group.add(lamp);
     }
-    pois.push({ id: `project-${p.slug}`, kind: "project", s: si, x, z, project: p });
+    pois.push({ id: `project-${p.slug}`, kind: "project", s: si, x, z, reach: 38 * S, project: p });
+    // the board and the view of it from the road
+    clear.push({ x, z, r: 17 * S });
   });
 
   // ── lookout: about board + P sign ──
@@ -548,21 +595,20 @@ export function buildSigns(
     // far long edge of the pad, facing back toward the road
     const bx = pad.x + sn * (pad.hz - 1.5);
     const bz = pad.z + c * (pad.hz - 1.5);
-    const panel = facePanel(face, 10.8, 6.6, 0.25);
-    const ground = terrain.heightAt(bx, bz);
-    panel.position.set(bx, ground + 2.2 + 3.3, bz);
-    panel.rotation.y = pad.angle + Math.PI;
+    const aw = 10.8 * S;
+    const ah = 6.6 * S;
+    const yaw = pad.angle + Math.PI;
+    const panel = facePanel(face, aw, ah, 0.25 * S);
+    const centre = groundUnder(bx, bz, yaw, aw) + 2.2 + ah / 2;
+    panel.position.set(bx, centre, bz);
+    panel.rotation.y = yaw;
     group.add(panel);
-    for (const dx of [-3.8, 3.8]) {
-      const leg = post(5.8, 0.3);
-      leg.position.set(bx, ground - 0.2, bz);
-      leg.rotation.y = panel.rotation.y;
-      leg.translateX(dx);
-      leg.translateZ(-0.2);
-      group.add(leg);
-      colliders.addCircle(leg.position.x, leg.position.z, 0.35, "sign");
+    for (const dx of [-3.8 * S, 3.8 * S]) {
+      const l = leg(bx, bz, yaw, dx, -0.2 * S, centre + 0.1 * S, 0.3 * S);
+      colliders.addCircle(l.x, l.z, 0.35 * S, "sign");
     }
-    pois.push({ id: "about", kind: "about", s: track.nearest(pad.x, pad.z).s, x: bx, z: bz });
+    pois.push({ id: "about", kind: "about", s: track.nearest(pad.x, pad.z).s, x: bx, z: bz, reach: 30 * S });
+    clear.push({ x: bx, z: bz, r: 14 * S });
 
     const pFace = makeFace(512, 512, (ctx) => {
       signBase(ctx, 512, 512, SIGN_BLUE, 40, 14, 8);
@@ -577,17 +623,21 @@ export function buildSigns(
     const side = Math.sign(hit.lateral) || 1;
     const psi = hit.s - 60;
     const pi = track.indexAt(psi);
-    const px = track.px[pi] + track.leftX(pi) * (ROAD_HALF + 3) * side;
-    const pz = track.pz[pi] + track.leftZ(pi) * (ROAD_HALF + 3) * side;
-    const pg = terrain.heightAt(px, pz);
-    const pPanel = facePanel(pFace, 1.4, 1.4, 0.06);
-    pPanel.position.set(px, pg + 2.6, pz);
-    pPanel.rotation.y = faceYaw(track, pi, 0.2 * side);
+    const size = 1.4 * S;
+    const pOff = ROADSIDE_EDGE + (size / 2) * Math.cos(0.2);
+    const px = track.px[pi] + track.leftX(pi) * pOff * side;
+    const pz = track.pz[pi] + track.leftZ(pi) * pOff * side;
+    const pYaw = faceYaw(track, pi, 0.2 * side);
+    const pBottom = groundUnder(px, pz, pYaw, size) + 2.2;
+    const pDepth = 0.06 * S;
+    const pPanel = facePanel(pFace, size, size, pDepth);
+    pPanel.position.set(px, pBottom + size / 2, pz);
+    pPanel.rotation.y = pYaw;
     group.add(pPanel);
-    const pp = post(2.5, 0.09);
-    pp.position.set(px, pg - 0.1, pz);
-    group.add(pp);
-    colliders.addCircle(px, pz, 0.25, "pole");
+    const pPostW = 0.09 * S;
+    const pp = leg(px, pz, pYaw, 0, -(pDepth + pPostW) / 2, pBottom + size / 2, pPostW, 0.1);
+    colliders.addCircle(pp.x, pp.z, 0.3, "pole");
+    clear.push({ x: px, z: pz, r: size / 2 + 5 });
   }
 
   // ── chevrons on the outside of tight bends ──
@@ -607,7 +657,9 @@ export function buildSigns(
       ctx.fill();
     });
     faces.push(chev);
+    // modelled at the original size, scaled per instance
     const geo = new THREE.PlaneGeometry(0.62, 0.78);
+    const turn = 0.3;
     const mats: THREE.Matrix4[] = [];
     const postMats: THREE.Matrix4[] = [];
     let last = -100;
@@ -617,16 +669,17 @@ export function buildSigns(
       if (Math.abs(cur) < 1 / 95 || sk - last < 16) continue;
       last = sk;
       const side = cur > 0 ? -1 : 1; // outside of the bend
-      const off = ROAD_HALF + 2.8;
+      const off = ROAD_HALF + 2.5 + 0.31 * S * Math.cos(turn);
       const x = track.px[k] + track.leftX(k) * off * side;
       const z = track.pz[k] + track.leftZ(k) * off * side;
-      const y = terrain.heightAt(x, z) + 1.25;
-      const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), faceYaw(track, k, side * 0.3));
+      const y = terrain.heightAt(x, z) + 1.25 * S;
+      const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), faceYaw(track, k, side * turn));
       // arrow points toward the turn: mirror for right-hand bends
-      const scale = new THREE.Vector3(cur > 0 ? -1 : 1, 1, 1);
+      const scale = new THREE.Vector3(cur > 0 ? -S : S, S, S);
       mats.push(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), q, scale));
-      postMats.push(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), q, new THREE.Vector3(1, 1, 1)));
-      colliders.addCircle(x, z, 0.2, "pole");
+      postMats.push(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), q, new THREE.Vector3(S, S, S)));
+      colliders.addCircle(x, z, 0.25, "pole");
+      clear.push({ x, z, r: 5 });
     }
     chev.material.side = THREE.DoubleSide;
     const inst = new THREE.InstancedMesh(geo, chev.material, mats.length);
@@ -645,6 +698,8 @@ export function buildSigns(
   return {
     group,
     pois,
+    gantries,
+    clear,
     setLang,
     ready,
     setGlow(signs: number, boards: number) {

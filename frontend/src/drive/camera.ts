@@ -97,15 +97,7 @@ export class CameraRig {
     const far = this.mode === "far";
     const dist = (far ? 10.5 : 6.2) + speed * 0.02;
     const height = far ? 3.7 : 2.05;
-    // follow the direction of travel a bit when sliding, for a drift-cam feel
-    const velHeading = speed > 4 ? Math.atan2(-(car.vx * -Math.sin(car.heading) + car.vy * -Math.cos(car.heading)), -(car.vx * -Math.cos(car.heading) + car.vy * Math.sin(car.heading))) : car.heading;
-    const reversing = car.vx < -1;
-    let targetYaw = car.heading;
-    if (speed > 4 && !reversing) {
-      let d = velHeading - car.heading;
-      d = Math.atan2(Math.sin(d), Math.cos(d));
-      targetYaw = car.heading + d * 0.45;
-    }
+    const targetYaw = car.heading;
     if (!this.initialised) {
       this.yaw = targetYaw;
     } else {
