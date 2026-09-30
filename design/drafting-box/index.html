@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>zanviq — 설계 도면 × 명함 한 통 (리디자인 시안)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<link rel="stylesheet" href="base.css" />
+<style>
+  /* A+B. Drafting-sheet sections (spec tables, title blocks, a year axis for
+     history) on plain lavender-grey paper. The hero is the box of 100 cards:
+     the lid comes off and the top card rises, tilts, flips and docks. */
+  :root {
+    --paper: #f1f0f5;
+    --sheet: #fbfbfd;
+    --ink: #1d1b24;
+    --soft: #5c5868;
+    --line: #d2cfdd;
+    --lav: #8580b8;
+    --deep: #433d7a;
+    --pale: #e4e2f1;
+    --sans: "IBM Plex Sans KR", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", "IBM Plex Sans KR", monospace;
+    --pret: "Pretendard", system-ui, sans-serif;
+    --nserif: "Noto Serif KR", serif;
+    --slate: #7e78b0;
+    --board: #9e9ac0;
+    --board-dk: #837fab;
+    --lift: 0 1px 1px rgb(29 27 36 / 0.05), 0 18px 36px -26px rgb(40 36 90 / 0.35);
+  }
+  body {
+    color: var(--ink); font: 16px/1.7 var(--sans);
+    background: var(--paper) var(--tex-bg);
+  }
+  ::selection { background: var(--pale); }
+  :focus-visible { outline: 2px solid var(--deep); outline-offset: 2px; }
+  .mono { font-family: var(--mono); }
+
+  /* ── header ─────────────────────────────────────────── */
+  .hd { background: rgb(241 240 245 / 0.88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .hd-in { height: 60px; }
+  .logo { gap: 0.6rem; }
+  .logo svg { width: 28px; height: 28px; }
+  .logo-word { font-weight: 600; font-size: 1.1rem; letter-spacing: -0.01em; }
+  .nav { gap: 0.15rem; }
+  .nav-link { padding: 0.3rem 0.65rem; font-size: 0.9rem; font-weight: 500; color: var(--soft); }
+  .nav-link:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 1px; }
+  .drive { margin-left: 0.4rem; gap: 0.4rem; padding: 0.32rem 0.75rem; border: 1px solid var(--ink); border-radius: 3px; font-size: 0.86rem; font-weight: 600; transition: background 0.15s, color 0.15s; }
+  .drive:hover { background: var(--ink); color: var(--sheet); }
+  .lang { margin-left: 0.5rem; border: 1px solid var(--line); border-radius: 3px; font: 500 0.72rem/1 var(--mono); overflow: hidden; }
+  .lang span { padding: 0.4rem 0.5rem; color: var(--soft); }
+  .lang .on { background: var(--ink); color: var(--sheet); }
+
+  /* ── stage: a box of 100 cards ──────────────────────── */
+  .stage { --stage-h: 260svh; }
+  .slot { aspect-ratio: 1.8; width: min(74vw, 700px, calc(46svh * 1.8)); --lid: 0; --tray: 0; }
+  .prop { position: absolute; }
+  .tray { inset: -9% -6%; z-index: 0; border-radius: 1.2% / 2.2%; background: var(--board) var(--tex-board); box-shadow: 0 8px 0 var(--board-dk), 0 40px 60px -34px rgb(40 34 100 / 0.55); transform: translateY(calc(var(--tray) * 40%)); opacity: calc(1 - var(--tray)); }
+  .tray::before { content: ""; position: absolute; inset: 5.5% 4%; border-radius: 0.8% / 1.4%; background: #d9d6e8; box-shadow: inset 0 2px 5px rgb(40 34 100 / 0.35), inset 0 0 0 1px rgb(40 34 100 / 0.12); }
+  .tray::after { content: ""; position: absolute; left: 44%; right: 44%; top: 0; height: 5.5%; border-radius: 0 0 40% 40% / 0 0 100% 100%; background: #c9c5e0; box-shadow: inset 0 -2px 3px rgb(40 34 100 / 0.2); }
+  .pile { inset: 0; z-index: 1; border-radius: 1.6cqw; background: #f5f5f8; box-shadow: 0 2px 0 #e3e2ea, 0 3px 0 #f5f5f8, 0 5px 0 #dedde6, 0 6px 0 #f5f5f8, 0 8px 0 #d6d4df, 0 10px 12px -4px rgb(40 34 100 / 0.3); opacity: calc(1 - var(--tray)); transform: translateY(calc(var(--tray) * 40%)); }
+  .lid { inset: -10% -7%; z-index: 4; border-radius: 1.2% / 2.2%; background: var(--board) var(--tex-board); box-shadow: 0 1px 0 rgb(255 255 255 / 0.25) inset, 0 12px 0 var(--board-dk), 0 13px 0 #6f6a9c, 0 44px 60px -30px rgb(40 34 100 / 0.55); transform: translateY(calc(var(--lid) * -130%)) rotate(calc(var(--lid) * -6deg)); opacity: calc(1 - var(--lid) * 1.2); container-type: inline-size; }
+  .lid::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(160deg, rgb(255 255 255 / 0.22), transparent 45%); }
+  .label { font-family: var(--pret); position: absolute; left: 50%; top: 50%; width: 46cqw; transform: translate(-50%, -50%); padding: 3cqw 3.4cqw 2.6cqw; background: #fbfbfd var(--tex-bcard); box-shadow: 0 0.3cqw 0.8cqw rgb(40 34 100 / 0.2); }
+  .label-top { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 1.6cqw; border-bottom: 0.25cqw solid var(--ink); }
+  .label-top b { font: 700 4.6cqw/1 var(--nserif); letter-spacing: 0.1em; }
+  .label-top span { font-size: 1.6cqw; font-weight: 600; color: var(--soft); }
+  .label dl { display: grid; grid-template-columns: auto 1fr; margin: 0; font-size: 1.55cqw; }
+  .label dt, .label dd { margin: 0; padding: 1cqw 0; border-bottom: 0.1cqw solid var(--line); }
+  .label dt { padding-right: 2cqw; color: var(--soft); }
+  .label dd { font-weight: 600; }
+  .label svg { display: block; width: 100%; height: 3.6cqw; margin-top: 1.6cqw; }
+  .hint { position: absolute; left: 50%; bottom: 4svh; transform: translateX(-50%); display: flex; align-items: center; gap: 0.6rem; font: 500 0.75rem/1 var(--mono); color: var(--soft); }
+  .hint::after { content: ""; width: 1px; height: 24px; background: var(--soft); }
+
+  /* card: white stock, slate panel; back is solid slate */
+  .face { border-radius: 1.6cqw; font-family: var(--pret); }
+  .front { background: #fdfdfe var(--tex-bcard); box-shadow: 0 1px 2px rgb(28 27 34 / 0.1), 0 30px 50px -30px rgb(40 34 100 / 0.5); }
+  .panel { right: 0; top: 0; bottom: 0; width: 27cqw; background: var(--deep) var(--tex-dark); }
+  .panel-mark { right: 8.5cqw; top: 8cqw; width: 10cqw; }
+  .panel-mark svg { display: block; width: 100%; }
+  .panel-dom { right: 0; width: 27cqw; bottom: 7cqw; text-align: center; font-size: 1.6cqw; font-weight: 600; letter-spacing: 0.04em; color: #cfcbea; }
+  .c-brand { left: 7cqw; top: 7.5cqw; display: flex; align-items: center; gap: 1.2cqw; font-size: 1.9cqw; font-weight: 700; letter-spacing: -0.01em; color: var(--deep); }
+  .c-brand i { width: 1.9cqw; height: 1.9cqw; border-radius: 0.4cqw; background: var(--deep); }
+  .c-name { left: 7cqw; top: 18cqw; font: 700 5.6cqw/1.1 var(--pret); letter-spacing: -0.035em; }
+  .c-tag { left: 7cqw; top: 26.5cqw; font-size: 2.1cqw; color: var(--soft); }
+  .c-info { left: 7cqw; top: 36.5cqw; display: grid; grid-template-columns: auto 1fr; gap: 0.7cqw 2.4cqw; font-size: 1.55cqw; }
+  .c-info dt { margin: 0; color: #9591a5; font-weight: 600; }
+  .c-info dd { margin: 0; font-weight: 500; }
+  .back { background: var(--deep) var(--tex-dark); color: #fff; box-shadow: 0 30px 50px -30px rgb(40 34 100 / 0.55); }
+  .b-center { inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.2cqw; }
+  .b-center svg { width: 9cqw; }
+  .b-word { font-size: 4.2cqw; font-weight: 700; letter-spacing: -0.02em; }
+  .b-links { display: flex; gap: 3.5cqw; font-size: 1.6cqw; color: #cfcbea; }
+  .b-links a { display: inline-flex; align-items: center; gap: 0.9cqw; }
+  .b-links a:hover { color: #fff; text-decoration: underline; text-underline-offset: 0.4cqw; }
+  .b-links svg { width: 1.9cqw; height: 1.9cqw; }
+
+  /* ── sections ───────────────────────────────────────── */
+  .sec { padding: 6rem 0; }
+  .sec-head { position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; padding-bottom: 0.9rem; margin-bottom: 2.4rem; border-bottom: 1px solid var(--ink); }
+  .sec-head::before, .sec-head::after { content: ""; position: absolute; bottom: -5px; width: 1px; height: 9px; background: var(--ink); }
+  .sec-head::before { left: 0; } .sec-head::after { right: 0; }
+  .sec-title { font-weight: 600; font-size: clamp(1.8rem, 3.4vw, 2.4rem); letter-spacing: -0.03em; line-height: 1.2; }
+  .sec-note { font: 400 0.8rem/1 var(--mono); color: var(--soft); }
+  .sheet { position: relative; background: var(--sheet) var(--tex-card); border: 1px solid var(--line); box-shadow: var(--lift); }
+
+  .about-sheet { display: grid; gap: 2.4rem; padding: clamp(1.4rem, 4vw, 3rem); }
+  @media (min-width: 860px) { .about-sheet { grid-template-columns: 15rem 1fr; gap: 3.5rem; } }
+  .fig { position: relative; align-self: start; justify-self: start; width: 100%; max-width: 15rem; }
+  .fig-box { position: relative; padding: 10px; }
+  .fig-box::before { content: ""; position: absolute; inset: 0; background:
+      linear-gradient(var(--ink), var(--ink)) 0 0 / 14px 1px no-repeat, linear-gradient(var(--ink), var(--ink)) 0 0 / 1px 14px no-repeat,
+      linear-gradient(var(--ink), var(--ink)) 100% 0 / 14px 1px no-repeat, linear-gradient(var(--ink), var(--ink)) 100% 0 / 1px 14px no-repeat,
+      linear-gradient(var(--ink), var(--ink)) 0 100% / 14px 1px no-repeat, linear-gradient(var(--ink), var(--ink)) 0 100% / 1px 14px no-repeat,
+      linear-gradient(var(--ink), var(--ink)) 100% 100% / 14px 1px no-repeat, linear-gradient(var(--ink), var(--ink)) 100% 100% / 1px 14px no-repeat; }
+  .fig img { width: 100%; aspect-ratio: 1; object-fit: cover; filter: grayscale(1) contrast(1.05); mix-blend-mode: multiply; background: var(--pale); }
+  .fig figcaption { margin-top: 0.6rem; font: 400 0.75rem/1.4 var(--mono); color: var(--soft); }
+  .about-text p { max-width: 38em; font-size: 1.04rem; line-height: 1.9; color: #34313e; }
+  .about-text p + p { margin-top: 0.9em; }
+  .about-text .lead { font-size: 1.45rem; font-weight: 500; letter-spacing: -0.02em; color: var(--ink); }
+  .kv { display: grid; grid-template-columns: 8rem 1fr; margin-top: 2rem; border-top: 1px solid var(--ink); }
+  .kv dt, .kv dd { margin: 0; padding: 0.65rem 0; border-bottom: 1px solid var(--line); font-size: 0.93rem; }
+  .kv dt { color: var(--soft); font-weight: 500; }
+  .kv dd { font-family: var(--mono); font-size: 0.86rem; }
+  .kv dd a { color: var(--deep); margin-right: 1.2rem; }
+  .kv dd a:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+  .pj-grid { gap: 2rem; }
+  .dwg { display: flex; flex-direction: column; background: var(--sheet) var(--tex-card); border: 1px solid var(--line); box-shadow: var(--lift); transition: border-color 0.2s, box-shadow 0.3s, transform 0.3s; }
+  .dwg:hover { border-color: var(--deep); transform: translateY(-3px); box-shadow: 0 1px 1px rgb(29 27 36 / 0.05), 0 28px 44px -28px rgb(40 36 90 / 0.5); }
+  .dwg-img { margin: 12px 12px 0; aspect-ratio: 16 / 10; overflow: hidden; border: 1px solid var(--line); }
+  .dwg-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+  .dwg:hover .dwg-img img { transform: scale(1.02); }
+  .tb { display: grid; grid-template-columns: 1fr 1fr auto; margin: 12px; border: 1px solid var(--ink); flex: 1; grid-template-rows: 1fr auto; }
+  .tb > * { padding: 0.75rem 0.9rem; }
+  .tb-main { grid-column: 1 / -1; border-bottom: 1px solid var(--ink); }
+  .tb-main h3 { font-weight: 600; font-size: 1.2rem; letter-spacing: -0.02em; line-height: 1.35; }
+  .tb-main p { margin-top: 0.35rem; font-size: 0.9rem; line-height: 1.65; color: var(--soft); }
+  .tb-cell { font: 400 0.74rem/1.4 var(--mono); color: var(--soft); border-right: 1px solid var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tb-cell small { display: block; font: 500 0.66rem/1 var(--sans); color: #8b879a; margin-bottom: 0.3rem; }
+  .tb-go { display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; font-weight: 600; color: var(--deep); }
+  .dwg:hover .tb-go { background: var(--deep); color: #fff; }
+
+  /* timeline: rows on a shared year axis */
+  .tl-sheet { padding: clamp(1rem, 3vw, 2rem) clamp(1rem, 3vw, 2.2rem); }
+  .tl-grid, .tl-item { display: grid; grid-template-columns: 7.5rem 1fr minmax(12rem, 18rem); gap: 1.4rem; align-items: start; }
+  .tl-axis-head { padding-bottom: 0.6rem; border-bottom: 1px solid var(--ink); font: 500 0.72rem/1 var(--mono); color: var(--soft); }
+  .years { display: grid; grid-template-columns: repeat(var(--n), 1fr); }
+  .years span { padding-left: 4px; border-left: 1px solid var(--line); }
+  .tl-item { padding: 1.1rem 0; border-bottom: 1px solid var(--line); }
+  .tl-period { font: 500 0.82rem/1.6 var(--mono); color: var(--deep); }
+  .tl-title { font-weight: 600; font-size: 1.05rem; line-height: 1.45; }
+  .tl-org { font-size: 0.9rem; color: var(--soft); }
+  .tl-desc { margin-top: 0.15rem; font-size: 0.9rem; color: var(--soft); }
+  .axis { position: relative; height: 1.6rem; background: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px calc(100% / var(--n))); }
+  .axis b { position: absolute; top: 0.45rem; height: 0.7rem; left: var(--a); width: var(--w); background: var(--deep); border-radius: 1px; }
+  .axis b::before, .axis b::after { content: ""; position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--deep); }
+  .axis b::before { left: 0; } .axis b::after { right: 0; }
+  @media (max-width: 760px) { .tl-grid { display: none; } .tl-item { grid-template-columns: 1fr; gap: 0.3rem; } .axis { display: none; } }
+  .tl-foot { padding-top: 1.2rem; }
+  .btn-more { padding: 0.45rem 0.9rem; border: 1px solid var(--ink); border-radius: 3px; background: var(--sheet); font-size: 0.85rem; font-weight: 600; }
+  .btn-more:hover { background: var(--ink); color: var(--sheet); }
+
+  /* end of page: empty runway so the docked card can be scrolled clear of the content above */
+  .ft { display: grid; place-items: center; min-height: max(300px, 38svh); padding-bottom: 2rem; }
+  .ft p { font-weight: 600; font-size: clamp(1.4rem, 3vw, 2rem); letter-spacing: -0.02em; color: var(--ink); opacity: 0.14; }
+  .fly.docked .face { box-shadow: 0 16px 28px -14px rgb(40 34 100 / 0.55); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="data.js"></script>
+<script src="paper.js"></script>
+<script src="stage.js"></script>
+<script src="common.js"></script>
+<script>
+  Paper.apply({ "--tex-card": ["cotton", 0.2], "--tex-bcard": ["cotton", 0.16], "--tex-bg": ["paper", 0.14], "--tex-board": ["cotton", 0.28], "--tex-dark": ["cotton", 0.22] });
+
+  const L = {
+    ko: { mat: "350g 코튼지", matS: "무코팅", ink: "라벤더 별색 1도", inkS: "PANTONE 2715 C", corner: "모서리 R3", cornerS: "라운드 재단", dwg: "도면", card: "명함", scale: "축척", by: "작성", date: "날짜", org: "소속", focus: "관심 분야", focusV: "AI · 웹 개발", tools: "주로 쓰는 도구", contact: "연락", period: "기간", item: "항목", fig: "그림 1", host: "호스팅", link: "링크", slug: "슬러그" },
+    en: { mat: "350g cotton stock", matS: "uncoated", ink: "1 spot colour, lavender", inkS: "PANTONE 2715 C", corner: "Corner R3", cornerS: "round-cut", dwg: "Drawing", card: "Business card", scale: "Scale", by: "Drawn by", date: "Date", org: "Affiliation", focus: "Focus", focusV: "AI, web development", tools: "Tools", contact: "Contact", period: "Period", item: "Item", fig: "Fig. 1", host: "Hosting", link: "Link", slug: "Slug" },
+  };
+
+  const LB = {
+    ko: { box: "명함", qty: "100매", name: "성명", size: "규격", sizeV: "90 × 50 mm", web: "웹", org: "소속", focus: "관심 분야", focusV: "AI · 웹 개발", tools: "도구", contact: "연락처", intro: "자기소개", period: "기간", content: "내용", note: "비고", date: "취득", cert: "자격명", issuer: "발행처", hist: "수상 · 활동", close: "위의 기재 사항은 사실과 다름없습니다.", when: "2026년 10월", profile: "인적 사항" },
+    en: { box: "CARDS", qty: "100 pcs", name: "Name", size: "Size", sizeV: "90 × 50 mm", web: "Web", org: "Affiliation", focus: "Focus", focusV: "AI, web development", tools: "Tools", contact: "Contact", intro: "Introduction", period: "Period", content: "Entry", note: "Details", date: "Year", cert: "Certificate", issuer: "Issuer", hist: "Awards & activities", close: "I certify that the above is true and accurate.", when: "October 2026", profile: "Personal details" },
+  };
+  const Z_MARK = (c) => `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5.5h14L5 18.5h14" stroke="${c}" stroke-width="3" stroke-linejoin="miter"/></svg>`;
+  // a decorative barcode for the box label (fixed pattern, not data)
+  const BARCODE = (() => { let x = 0, out = ""; const w = [2, 1, 1, 3, 1, 2, 2, 1, 3, 1, 1, 2, 1, 3, 2, 1, 1, 1, 2, 3, 1, 2, 1, 1, 3, 2, 1, 2, 1, 1, 2, 3, 1, 1, 2, 1, 3, 1, 2, 2]; w.forEach((v, i) => { if (i % 2 === 0) out += `<rect x="${x}" y="0" width="${v}" height="30"/>`; x += v + 0.6; }); return `<svg viewBox="0 0 ${x.toFixed(0)} 30" preserveAspectRatio="none" fill="#1c1b22" aria-hidden="true">${out}</svg>`; })();
+
+  // Z built on its construction lines: circle, square, diagonal, centre line
+  const MARK = (cls, ink = "#433d7a", guide = "#8580b8") => `<svg class="${cls}" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+    <circle cx="50" cy="50" r="46" stroke="${guide}" stroke-width=".6"/>
+    <rect x="17.5" y="17.5" width="65" height="65" stroke="${guide}" stroke-width=".6" stroke-dasharray="3 2"/>
+    <path d="M4 50h92M50 4v92" stroke="${guide}" stroke-width=".5" stroke-dasharray="10 2 2 2"/>
+    <path d="M17.5 17.5l65 65" stroke="${guide}" stroke-width=".5" stroke-dasharray="3 2"/>
+    <path d="M26 27h48L26 73h48" stroke="${ink}" stroke-width="7" stroke-linejoin="miter" stroke-linecap="square"/>
+    ${[[26, 27], [74, 27], [26, 73], [74, 73]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2" fill="#fcfcfe" stroke="${guide}" stroke-width=".8"/>`).join("")}
+  </svg>`;
+
+  const yearsOf = (p) => { const m = String(p).match(/(\d{4})(?:\s*[–-]\s*(\d{4}))?/); return m ? [+m[1], +(m[2] || m[1])] : null; };
+
+  function axisRange(S) {
+    const ys = [...S.timeline, ...S.qualifications].map((i) => yearsOf(i.period)).filter(Boolean);
+    return [Math.min(...ys.map((y) => y[0])), Math.max(...ys.map((y) => y[1]))];
+  }
+
+  function tlItems(items, c, [y0, y1]) {
+    const n = y1 - y0 + 1;
+    return items.map((it) => {
+      const title = c.pick(it, "title"), org = c.pick(it, "org"), desc = c.pick(it, "desc");
+      const y = yearsOf(it.period);
+      const bar = y ? `<b style="--a:${((y[0] - y0) / n) * 100}%;--w:${((y[1] - y[0] + 1) / n) * 100}%" title="${c.esc(it.period)}"></b>` : "";
+      return `<li class="tl-item"><p class="tl-period">${c.esc(it.period)}</p><div>
+        <h3 class="tl-title">${c.esc(title || org)}</h3>${org && title ? `<p class="tl-org">${c.esc(org)}</p>` : ""}${desc ? `<p class="tl-desc">${c.esc(desc)}</p>` : ""}</div>
+        <div class="axis" style="--n:${n}" aria-hidden="true">${bar}</div></li>`;
+    }).join("");
+  }
+  function timeline(id, heading, items, c, range, l) {
+    const head = items.slice(0, 3), rest = items.slice(3);
+    const n = range[1] - range[0] + 1;
+    return `<section class="sec tl" id="${id}"><div class="wrap">
+      <div class="sec-head"><h2 class="sec-title">${heading}</h2><span class="sec-note">${range[0]}–${range[1]}</span></div>
+      <div class="sheet tl-sheet">
+        <div class="tl-grid tl-axis-head"><span>${l.period}</span><span>${l.item}</span><div class="years" style="--n:${n}">${Array.from({ length: n }, (_, i) => `<span>${String(range[0] + i).slice(2)}</span>`).join("")}</div></div>
+        <ol class="tl-list">${tlItems(head, c, range)}</ol>
+        ${rest.length ? `<div class="tl-rest"><div><ol class="tl-list">${tlItems(rest, c, range)}</ol></div></div>
+          <div class="tl-foot"><button class="btn-more" type="button" aria-expanded="false" data-n="${rest.length}"><span class="lbl">${c.t.more(rest.length)}</span>${c.icon.chevron}</button></div>` : ""}
+      </div></div></section>`;
+  }
+
+  Z.boot({
+    render(c) {
+      const { t, S, esc, pick } = c;
+      const l = L[c.lang];
+      const lb = LB[c.lang];
+      const range = axisRange(S);
+      const about = pick(S, "about").split(/\n{2,}/);
+      const gh = S.links.find((x) => /github/i.test(x.url));
+      const mail = S.links.find((x) => /mailto/i.test(x.url));
+      const linkA = (x) => `<a href="${esc(x.url)}" target="_blank" rel="noreferrer">${/mail/i.test(x.url) ? c.icon.mail : c.icon.github}${esc(c.linkText(x))}</a>`;
+      return `
+      <header class="hd"><div class="wrap hd-in">
+        <a href="#top" class="logo">${MARK("", "#1d1b24", "#8580b8")}<span class="logo-word">zanviq</span></a>
+        <nav class="nav" aria-label="Main">
+          <a class="nav-link" href="#work">${t.work}</a><a class="nav-link" href="#about">${t.about}</a><a class="nav-link hide-sm" href="#history">${t.history}</a>
+          <a class="drive" href="#drive">${c.icon.wheel}<span class="drive-lbl">${t.drive}</span></a>
+          <button class="lang" type="button" data-lang-toggle aria-label="Toggle language"><span class="${c.lang === "ko" ? "on" : ""}">KO</span><span class="${c.lang === "en" ? "on" : ""}">EN</span></button>
+        </nav></div></header>
+
+      <main>
+        <section class="stage" id="top">
+          <h1 class="sr-only">${esc(c.name)} — ${esc(c.tagline)}</h1>
+          <div class="stage-layer"><div class="slot">
+            <div class="prop tray"></div>
+            <div class="prop pile"></div>
+            <div class="fly"><div class="persp"><div class="card3d">
+              <div class="face front"><div class="art">
+                <p class="c-brand"><i></i>zanviq</p>
+                <p class="c-name">${esc(c.name)}</p>
+                <p class="c-tag">${esc(c.tagline)}</p>
+                <dl class="c-info"><dt>${lb.org}</dt><dd>${t.school}</dd><dt>${lb.web}</dt><dd>zanviq.dev</dd><dt>Mail</dt><dd>${esc(mail ? c.linkText(mail) : "")}</dd></dl>
+                <span class="panel"></span>
+                <span class="panel-mark">${Z_MARK("#fff")}</span>
+                <p class="panel-dom">github.com/Zanviq</p>
+              </div><div class="light"></div></div>
+              <div class="face back"><div class="art">
+                <div class="b-center">${Z_MARK("#fff")}<p class="b-word">zanviq</p><div class="b-links">${S.links.map(linkA).join("")}</div></div>
+              </div><div class="light"></div></div>
+            </div></div></div>
+            <div class="prop lid"><div class="label">
+              <div class="label-top"><b>${lb.box}</b><span>${lb.qty}</span></div>
+              <dl><dt>${lb.name}</dt><dd>${esc(c.name)}</dd><dt>${lb.size}</dt><dd>${lb.sizeV}</dd><dt>${lb.web}</dt><dd>zanviq.dev</dd></dl>
+              ${BARCODE}
+            </div></div>
+          </div><p class="hint">${t.scroll}</p></div>
+        </section>
+
+        <section class="sec" id="about"><div class="wrap">
+          <div class="sec-head"><h2 class="sec-title">${t.aboutHead}</h2></div>
+          <div class="sheet about-sheet">
+            <figure class="fig"><div class="fig-box"><img src="${c.asset(S.avatar)}" alt="${esc(c.name)}"></div><figcaption>${l.fig}. ${esc(c.name)}</figcaption></figure>
+            <div class="about-text">
+              <p class="lead">${esc(about[0])}</p>
+              ${about.slice(1).map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("")}
+              <dl class="kv">
+                <dt>${l.focus}</dt><dd>${l.focusV}</dd>
+                <dt>${l.tools}</dt><dd>FastAPI, React</dd>
+                <dt>${l.org}</dt><dd>${t.school}</dd>
+                <dt>${l.contact}</dt><dd>${S.links.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noreferrer">${esc(c.linkText(x))}</a>`).join("")}</dd>
+              </dl>
+            </div>
+          </div>
+        </div></section>
+
+        <section class="sec" id="work"><div class="wrap">
+          <div class="sec-head"><h2 class="sec-title">${t.workHead}</h2><span class="sec-note">${t.projects(S.projects.length)}</span></div>
+          <div class="pj-grid">${S.projects.map((p) => `
+            <a class="dwg" href="#work">
+              <div class="dwg-img"><img src="${c.asset(p.cover)}" alt="" loading="lazy"></div>
+              <div class="tb">
+                <div class="tb-main"><h3>${esc(pick(p, "title"))}</h3><p class="clamp3">${esc(pick(p, "summary"))}</p></div>
+                <span class="tb-cell"><small>${l.slug}</small>${esc(p.slug)}</span>
+                <span class="tb-cell"><small>${l.link}</small>${esc(p.links[0] ? c.linkText(p.links[0]) : "—")}</span>
+                <span class="tb-go">${t.view}${c.icon.arrow}</span>
+              </div>
+            </a>`).join("")}
+          </div>
+        </div></section>
+
+        ${timeline("history", t.historyHead, S.timeline, c, range, l)}
+        ${timeline("qualifications", t.qualHead, S.qualifications, c, range, l)}
+      </main>
+
+      <footer class="ft"><p>zanviq.dev</p></footer>`;
+    },
+
+    mount(c) {
+      const slot = document.querySelector(".slot");
+      const fly = slot.querySelector(".fly");
+      const { smooth } = CardStage;
+      return CardStage({
+        stage: document.querySelector(".stage"),
+        layer: document.querySelector(".stage-layer"),
+        slot, fly,
+        card: slot.querySelector(".card3d"),
+        hint: document.querySelector(".hint"),
+        flipLabel: c.t.flip,
+        shade: "30,26,70",
+        shine: "255,255,255",
+        // lid off, the top card rises out of the box, then tilts and flips
+        pose(p) {
+          const rise = smooth(0.14, 0.34, p);
+          const env = Math.sin(Math.PI * smooth(0.3, 1, p));
+          const flip = smooth(0.48, 0.78, p);
+          return { x: 0, y: -0.08 * rise * (1 - smooth(0.4, 0.6, p)), rx: 11 * env * (0.6 - flip), ry: 180 * flip + 8 * env * (1 - 0.6 * flip), rz: -2 * env * (1 - flip), sc: 1 + 0.05 * rise * (1 - smooth(0.85, 1, p)) };
+        },
+        frame({ p }) {
+          slot.style.setProperty("--lid", smooth(0.0, 0.18, p).toFixed(3));
+          slot.style.setProperty("--tray", smooth(0.3, 0.48, p).toFixed(3));
+          slot.querySelectorAll(".prop").forEach((el) => (el.style.visibility = p > 0.5 ? "hidden" : ""));
+        },
+      });
+    },
+  });
+</script>
+</body>
+</html>

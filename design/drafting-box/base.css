@@ -1,0 +1,64 @@
+/* Mechanics shared by the lavender2 drafts (layout, card stage, collapsibles).
+   Colour, type, paper and ornament live in each draft. */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: 80px; }
+body { margin: 0; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: hidden; }
+img { display: block; max-width: 100%; }
+h1, h2, h3, p, ol, ul, dl, dd, figure { margin: 0; padding: 0; }
+ol, ul { list-style: none; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wrap { max-width: 72rem; margin: 0 auto; padding: 0 1.25rem; }
+
+/* header */
+.hd { position: sticky; top: 0; z-index: 50; }
+.hd-in { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.logo, .nav, .drive, .lang { display: flex; align-items: center; }
+.nav { gap: 0.25rem; white-space: nowrap; }
+@media (max-width: 560px) {
+  .hide-sm { display: none; }
+  .drive .drive-lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+}
+
+/* card stage: a tall section; the card itself lives in a fixed layer */
+.stage { position: relative; height: var(--stage-h, 240svh); }
+.stage-layer { position: fixed; inset: 0; z-index: 30; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px 1rem 0; }
+.slot { position: relative; width: min(88vw, 820px, calc(58svh * 1.75)); aspect-ratio: 1.75; }
+.fly { position: absolute; inset: 0; z-index: 2; transform-origin: 50% 50%; outline: none; }
+.fly.docked { cursor: pointer; }
+.persp { position: absolute; inset: 0; perspective: 1800px; }
+.card3d { position: absolute; inset: 0; transform-style: preserve-3d; }
+.face { position: absolute; inset: 0; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; container-type: inline-size; pointer-events: none; }
+.face.back { transform: rotateY(180deg); }
+.fly:not(.docked) .face.showing { pointer-events: auto; }
+.face .light { position: absolute; inset: 0; z-index: 9; pointer-events: none; }
+.art { position: absolute; inset: 0; }
+.art > * { position: absolute; }
+.hint { margin-top: 2.2rem; transition: none; }
+.stage.is-static { height: auto; padding: 6rem 0 4rem; }
+.stage.is-static .stage-layer { position: relative; inset: auto; padding: 0; }
+.stage.is-static .face.back, .stage.is-static .prop { display: none; }
+
+/* sections */
+.pj-grid { display: grid; gap: 2rem; }
+@media (min-width: 720px) { .pj-grid { grid-template-columns: 1fr 1fr; } }
+.clamp3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* collapsible timeline rest (grid-rows 0fr -> 1fr) */
+.tl-rest { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.55s cubic-bezier(0.22, 1, 0.36, 1); }
+.tl-rest > div { overflow: hidden; }
+.tl-rest .tl-list { opacity: 0; transition: opacity 0.5s; }
+.tl.open .tl-rest { grid-template-rows: 1fr; }
+.tl.open .tl-rest .tl-list { opacity: 1; }
+.btn-more { display: inline-flex; align-items: center; gap: 0.45rem; }
+.btn-more .chev { transition: transform 0.3s; }
+.tl.open .btn-more .chev { transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-rest, .tl-rest .tl-list, .btn-more .chev { transition: none; }
+}
+
+/* long mono strings (emails, URLs) must not widen grids on small screens */
+dd, .kv a, .row a { overflow-wrap: anywhere; }
+.about-sheet > *, .about > *, .about-text, .form > *, .row > *, .kv > *, .pj-grid > * { min-width: 0; }
