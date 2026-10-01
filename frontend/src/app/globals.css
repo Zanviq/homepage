@@ -775,11 +775,6 @@
   .tl-item { grid-template-columns: 1fr; gap: 0.3rem; }
   .axis { display: none; }
 }
-.tl-rest { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.55s cubic-bezier(0.22, 1, 0.36, 1); }
-.tl-rest > div { overflow: hidden; }
-.tl-rest ol { opacity: 0; transition: opacity 0.5s; }
-.tl-rest[data-open="true"] { grid-template-rows: 1fr; }
-.tl-rest[data-open="true"] ol { opacity: 1; }
 .tl-foot { padding-top: 1.2rem; }
 .btn-more {
   display: inline-flex;
@@ -794,10 +789,6 @@
   transition: background 0.15s, color 0.15s;
 }
 .btn-more:hover { background: var(--ink); color: var(--sheet); }
-@media (prefers-reduced-motion: reduce) {
-  .tl-rest,
-  .tl-rest ol { transition: none; }
-}
 
 /* ── end of page: empty runway so the docked card clears the last content ── */
 .ft { display: grid; place-items: center; min-height: max(300px, 38svh); padding-bottom: 2rem; }

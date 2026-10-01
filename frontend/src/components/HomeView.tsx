@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 import { linkText, ProjectCard } from "./ProjectCard";
@@ -158,17 +158,28 @@ function axisRange(items: HistoryItem[]): [number, number] | null {
 }
 
 const COLLAPSED = 3;
+const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
-/** Ranked entries (1, 2, 3) first in rank order, then the rest in their saved order. */
-function byPriority(items: HistoryItem[]): HistoryItem[] {
-  const rank = (it: HistoryItem) => (it.priority && it.priority >= 1 && it.priority <= COLLAPSED ? it.priority : 0);
-  const ranked = items.filter((it) => rank(it) > 0).sort((a, b) => rank(a) - rank(b));
-  return [...ranked, ...items.filter((it) => rank(it) === 0)];
+interface Entry {
+  item: HistoryItem;
+  /** position in the saved list — the key, and the order when expanded */
+  i: number;
+}
+
+/** What the collapsed view shows: ranked entries (1, 2, 3) in rank order, topped up with the next ones in saved order. */
+function collapsedEntries(entries: Entry[]): Entry[] {
+  const rank = (e: Entry) => {
+    const p = e.item.priority;
+    return p && p >= 1 && p <= COLLAPSED ? p : 0;
+  };
+  const ranked = entries.filter((e) => rank(e) > 0).sort((a, b) => rank(a) - rank(b));
+  return [...ranked, ...entries.filter((e) => rank(e) === 0)].slice(0, COLLAPSED);
 }
 
 /* A timeline sheet: period | entry | a bar on the year axis. Collapsed it
-   shows the entries ranked 1–3 (topped up with the next ones if fewer are
-   ranked); the rest expand via a grid-rows 0fr→1fr transition. */
+   shows the entries ranked 1–3; expanded it shows everything in the saved
+   order, so the ranked ones glide back to their places (FLIP), the others
+   fade in, and the sheet's height eases between the two. */
 function TimelineSection({
   id,
   heading,
@@ -183,12 +194,58 @@ function TimelineSection({
   lang: Lang;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLOListElement>(null);
+  // positions (relative to the list) and height just before a toggle
+  const before = useRef<{ tops: Map<number, number>; height: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const snap = before.current;
+    before.current = null;
+    const wrap = box.current;
+    const ol = list.current;
+    if (!snap || !wrap || !ol || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const height = ol.offsetHeight;
+    if (Math.abs(height - snap.height) > 1) {
+      wrap.style.overflow = "hidden";
+      const anim = wrap.animate([{ height: `${snap.height}px` }, { height: `${height}px` }], { duration: 520, easing: EASE });
+      anim.onfinish = anim.oncancel = () => (wrap.style.overflow = "");
+    }
+    const top0 = ol.getBoundingClientRect().top;
+    ol.querySelectorAll<HTMLElement>("[data-i]").forEach((el) => {
+      const was = snap.tops.get(Number(el.dataset.i));
+      const now = el.getBoundingClientRect().top - top0;
+      if (was === undefined) {
+        el.animate([{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], {
+          duration: 420,
+          delay: 140,
+          easing: EASE,
+          fill: "backwards",
+        });
+      } else if (Math.abs(was - now) > 1) {
+        el.animate([{ transform: `translateY(${was - now}px)` }, { transform: "none" }], { duration: 560, easing: EASE });
+      }
+    });
+  }, [expanded]);
+
   if (items.length === 0) return null;
   const ko = lang === "ko";
-  const ordered = byPriority(items);
-  const head = ordered.slice(0, COLLAPSED);
-  const rest = ordered.slice(COLLAPSED);
+  const all: Entry[] = items.map((item, i) => ({ item, i }));
+  const shown = expanded ? all : collapsedEntries(all);
+  const more = items.length - COLLAPSED;
   const n = range ? range[1] - range[0] + 1 : 0;
+
+  const toggle = () => {
+    const ol = list.current;
+    if (ol) {
+      const top0 = ol.getBoundingClientRect().top;
+      const tops = new Map<number, number>();
+      ol.querySelectorAll<HTMLElement>("[data-i]").forEach((el) => tops.set(Number(el.dataset.i), el.getBoundingClientRect().top - top0));
+      before.current = { tops, height: ol.offsetHeight };
+    }
+    setExpanded((v) => !v);
+  };
 
   return (
     <section id={id} className="sec">
@@ -213,29 +270,20 @@ function TimelineSection({
               </div>
             </div>
           )}
-          <ol>
-            {head.map((item, i) => (
-              <TimelineItem key={i} item={item} lang={lang} range={range} />
-            ))}
-          </ol>
-          {rest.length > 0 && (
-            <>
-              <div className="tl-rest" data-open={expanded}>
-                <div>
-                  <ol>
-                    {rest.map((item, i) => (
-                      <TimelineItem key={i} item={item} lang={lang} range={range} />
-                    ))}
-                  </ol>
-                </div>
-              </div>
-              <div className="tl-foot">
-                <button type="button" onClick={() => setExpanded((v) => !v)} className="btn-more" aria-expanded={expanded}>
-                  {expanded ? (ko ? "접기" : "Collapse") : ko ? `${rest.length}개 더 보기` : `Show ${rest.length} more`}
-                  <ChevronDown size={14} className={`transition-transform duration-300 ${expanded ? "rotate-180" : ""}`} aria-hidden />
-                </button>
-              </div>
-            </>
+          <div ref={box}>
+            <ol ref={list}>
+              {shown.map(({ item, i }) => (
+                <TimelineItem key={i} index={i} item={item} lang={lang} range={range} />
+              ))}
+            </ol>
+          </div>
+          {more > 0 && (
+            <div className="tl-foot">
+              <button type="button" onClick={toggle} className="btn-more" aria-expanded={expanded}>
+                {expanded ? (ko ? "접기" : "Collapse") : ko ? `${more}개 더 보기` : `Show ${more} more`}
+                <ChevronDown size={14} className={`transition-transform duration-300 ${expanded ? "rotate-180" : ""}`} aria-hidden />
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -243,14 +291,14 @@ function TimelineSection({
   );
 }
 
-function TimelineItem({ item, lang, range }: { item: HistoryItem; lang: Lang; range: [number, number] | null }) {
+function TimelineItem({ item, index, lang, range }: { item: HistoryItem; index: number; lang: Lang; range: [number, number] | null }) {
   const title = lang === "ko" ? item.title_ko : item.title_en;
   const org = lang === "ko" ? item.org_ko : item.org_en;
   const desc = lang === "ko" ? item.desc_ko : item.desc_en;
   const y = yearsOf(item.period);
   const n = range ? range[1] - range[0] + 1 : 1;
   return (
-    <li className="tl-item">
+    <li className="tl-item" data-i={index}>
       <p className="tl-period">{item.period}</p>
       <div>
         <h3 className="tl-title">{title || org || "—"}</h3>
