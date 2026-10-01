@@ -55,9 +55,10 @@ const IDLE = 950;
 const REDLINE = 8900;
 const BRAKE_FORCE = 17500;
 // steering
-const STEER_LOCK = 0.54; // front-wheel lock at parking speeds (rad)
-const STEER_ALAT = 15; // at speed the lock shrinks so full input asks for this lateral accel (m/s²), a bit over road grip
+const STEER_LOCK = 0.68; // front-wheel lock at parking speeds (rad, ~39°)
+const STEER_ALAT = 26; // at speed the lock shrinks so full input asks for this lateral accel (m/s²)
 // grip
+const TURN_GRIP = 1.6; // game feel: in a turn the tyres hold this much more than the surface μ, so it turns tighter without sliding
 const YAW_SLOW = 30; // 1/s, how quickly the yaw rate follows the wheels when slow…
 const YAW_FAST = 8; // …and at speed, so it stays smooth rather than twitchy
 const LAT_GRIP = 14; // 1/s, how hard sideways velocity is scrubbed off
@@ -224,7 +225,7 @@ export class CarPhysics {
     // ── yaw: follow the front wheels, capped by what the surface can hold ──
     const speedX = Math.abs(this.vx);
     const rWheels = (this.vx * Math.tan(this.steerAngle)) / WB;
-    const rGrip = (mu * G) / Math.max(speedX, 1);
+    const rGrip = (mu * G * TURN_GRIP) / Math.max(speedX, 1);
     const rTarget = clamp(rWheels, -rGrip, rGrip);
     const yawResponse = lerp(YAW_SLOW, YAW_FAST, smoothstep(3, 20, speedX));
     this.r += (rTarget - this.r) * (1 - Math.exp(-dt * yawResponse));
