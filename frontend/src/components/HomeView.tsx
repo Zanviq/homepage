@@ -157,8 +157,18 @@ function axisRange(items: HistoryItem[]): [number, number] | null {
   return [Math.min(...ys.map((y) => y[0])), Math.max(...ys.map((y) => y[1]))];
 }
 
-/* A timeline sheet: period | entry | a bar on the year axis. Shows the first
-   three rows and expands the rest via a grid-rows 0fr→1fr transition. */
+const COLLAPSED = 3;
+
+/** Ranked entries (1, 2, 3) first in rank order, then the rest in their saved order. */
+function byPriority(items: HistoryItem[]): HistoryItem[] {
+  const rank = (it: HistoryItem) => (it.priority && it.priority >= 1 && it.priority <= COLLAPSED ? it.priority : 0);
+  const ranked = items.filter((it) => rank(it) > 0).sort((a, b) => rank(a) - rank(b));
+  return [...ranked, ...items.filter((it) => rank(it) === 0)];
+}
+
+/* A timeline sheet: period | entry | a bar on the year axis. Collapsed it
+   shows the entries ranked 1–3 (topped up with the next ones if fewer are
+   ranked); the rest expand via a grid-rows 0fr→1fr transition. */
 function TimelineSection({
   id,
   heading,
@@ -175,8 +185,9 @@ function TimelineSection({
   const [expanded, setExpanded] = useState(false);
   if (items.length === 0) return null;
   const ko = lang === "ko";
-  const head = items.slice(0, 3);
-  const rest = items.slice(3);
+  const ordered = byPriority(items);
+  const head = ordered.slice(0, COLLAPSED);
+  const rest = ordered.slice(COLLAPSED);
   const n = range ? range[1] - range[0] + 1 : 0;
 
   return (

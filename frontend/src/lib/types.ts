@@ -14,6 +14,8 @@ export interface HistoryItem {
   desc_ko: string;
   desc_en: string;
   hidden?: boolean;
+  /** 1–3: shown first, in this order, while the section is collapsed (0 / missing = no rank). */
+  priority?: number;
 }
 
 /** A row in the About spec table (e.g. "주로 쓰는 도구" → "Next.js, FastAPI"). */

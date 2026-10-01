@@ -339,6 +339,12 @@ function EntryListEditor({
     next[i] = { ...next[i], hidden: !next[i].hidden };
     setItems(next);
   }
+  // each rank belongs to one entry: taking it clears it elsewhere
+  function setPriority(i: number, rank: number) {
+    setItems(
+      items.map((it, j) => (j === i ? { ...it, priority: rank } : rank && it.priority === rank ? { ...it, priority: 0 } : it)),
+    );
+  }
   function add() {
     setItems([
       ...items,
@@ -349,6 +355,11 @@ function EntryListEditor({
   return (
     <div className="mt-6 border-2 border-ink bg-paper p-4 shadow-lift">
       <span className="field-label">{label}</span>
+      <p className="-mt-0.5 mb-3 text-xs text-ink-soft">
+        {lang === "ko"
+          ? "1–3위로 지정한 항목이 접힌 상태에서 순서대로 보이고, 나머지는 펼치면 보입니다. 순위가 3개보다 적으면 남은 자리는 목록 순서대로 채웁니다."
+          : "Entries ranked 1–3 show first, in that order, while collapsed; the rest appear when expanded. With fewer than three ranked, the remaining slots follow the list order."}
+      </p>
 
       <div className="flex flex-col gap-4">
         {items.map((item, i) => (
@@ -368,6 +379,19 @@ function EntryListEditor({
                 value={item.period}
                 onChange={(e) => update(i, "period", e.target.value)}
               />
+              <select
+                value={item.priority ?? 0}
+                onChange={(e) => setPriority(i, Number(e.target.value))}
+                className={`field !w-auto shrink-0 !py-1.5 text-sm ${item.priority ? "!border-deep font-semibold text-deep" : ""}`}
+                title={lang === "ko" ? "접힌 상태에서 먼저 보일 순위" : "Rank shown first while collapsed"}
+              >
+                <option value={0}>{lang === "ko" ? "순위 없음" : "No rank"}</option>
+                {[1, 2, 3].map((r) => (
+                  <option key={r} value={r}>
+                    {lang === "ko" ? `${r}위` : `#${r}`}
+                  </option>
+                ))}
+              </select>
               <button
                 onClick={() => toggleHidden(i)}
                 className="btn-mini shrink-0"

@@ -36,6 +36,7 @@ class HistoryItem(BaseModel):
     desc_ko: str = ""
     desc_en: str = ""
     hidden: bool = False  # admin can hide an individual entry from the site
+    priority: int = Field(0, ge=0, le=3)  # 1-3: shown first, in that order, while collapsed
 
 
 class Fact(BaseModel):
