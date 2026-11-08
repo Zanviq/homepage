@@ -1,24 +1,31 @@
 services:
   backend:
     build: ./backend
-    container_name: zanviq-backend
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - path: .env # written by TwoMES Hosting on deploy; optional locally
+        required: false
     environment:
       DATA_DIR: /data
     volumes:
-      # Raspberry Pi external HDD -> container. All markdown + images persist
-      # here. /mnt/homepage is an ext4 loop image on the NTFS drive
-      # (/mnt/HDD/homepage/homepage.img), mounted via /etc/fstab.
-      - /mnt/homepage:/data
+      # Markdown + images persist here. On the Pi, TwoMES Hosting sets
+      # HOSTING_DATA_DIR to /mnt/homepage (existing ext4 loop image on the HDD).
+      - ${HOSTING_DATA_DIR:-./data}:/data
     expose:
       - "8000"
-    networks:
-      - zanviq
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   frontend:
     build: ./frontend
-    container_name: zanviq-frontend
     restart: unless-stopped
     environment:
       # Next.js rewrites /api/* to this internal address (see next.config.ts)
@@ -26,22 +33,11 @@ services:
     expose:
       - "3000"
     depends_on:
-      - backend
-    networks:
-      - zanviq
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: zanviq-cloudflared
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run
-    environment:
-      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
-    depends_on:
-      - frontend
-    networks:
-      - zanviq
-
-networks:
-  zanviq:
-    driver: bridge
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

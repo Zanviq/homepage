@@ -17,7 +17,7 @@ The canonical origin is defined once in `frontend/src/lib/site.ts`; metadata,
 ## Architecture
 
 ```
-Cloudflare Tunnel (TUNNEL_TOKEN)  ->  frontend (Next.js :3000)
+TwoMES Hosting tunnel (www.zanviq.dev)  ->  frontend (Next.js :3000)
                                          │  /api/* rewritten to ↓
                                       backend (FastAPI :8000)
                                          │
@@ -96,7 +96,7 @@ node tools/zanviq.mjs help
 
    ```bash
    cp .env.example .env
-   # set TUNNEL_TOKEN, ADMIN_USERNAME, ADMIN_PASSWORD, JWT_SECRET
+   # set ADMIN_USERNAME, ADMIN_PASSWORD, JWT_SECRET
    # optional: GEMINI_API_KEY to enable the KO -> EN translate button
    ```
 
@@ -128,14 +128,23 @@ node tools/zanviq.mjs help
 
    The backend container runs as root, so no `chown` is needed.
 
-3. In the Cloudflare Zero Trust dashboard, point the tunnel's public hostname
-   `www.zanviq.dev` to `http://frontend:3000`.
-
-4. Build and run:
+3. Local run (no tunnel; data goes to `./data`):
 
    ```bash
    docker compose up -d --build
    ```
+
+## Deploying with TwoMES Hosting
+
+The site is an app on TwoMES Hosting (https://hosting.zanviq.dev); pushing to
+`main` redeploys it via webhook. The platform owns the Cloudflare tunnel, so
+the compose file has no `cloudflared`, `ports:` or `container_name`.
+
+- Repo: `Zanviq/homepage` @ `main`, build mode `compose`
+- Storage: existing `/mnt/homepage` (`existing_storage`) -> `HOSTING_DATA_DIR`
+- Domain: `www.zanviq.dev` -> service `frontend`, port `3000`
+- Env (dashboard / `set_env`): `ADMIN_USERNAME`, `ADMIN_PASSWORD`,
+  `JWT_SECRET`, `ADMIN_API_TOKEN`, `GEMINI_API_KEY`, `DATA_DIR=/data`
 
 ## Data layout
 
