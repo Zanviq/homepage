@@ -7,7 +7,7 @@ publishes it.
 ## Content: always through `tools/zanviq.mjs`
 
 Talks to the live admin API at https://www.zanviq.dev with a bearer token
-(`~/.config/zanviq/token` locally, `ADMIN_API_TOKEN` in the Pi's `.env`).
+(`~/.config/zanviq/token` locally, `ADMIN_API_TOKEN` in the hosting app's env).
 Never edit `/mnt/homepage` on the Pi directly — the API keeps `meta.json`,
 timestamps and slugs consistent.
 
@@ -34,14 +34,23 @@ Deleting (`delete <slug> --yes`) is permanent — confirm with the user first.
 
 ## Code changes
 
-No CI. Pushing to `main` does not deploy. Deploy on the Pi:
+The site is an app on TwoMES Hosting (https://hosting.zanviq.dev), slug
+`homepage`, compose mode, storage = existing `/mnt/homepage`, domain
+`www.zanviq.dev` -> `frontend:3000`. Deploy rules follow
+https://github.com/Zanviq/HOSTING/blob/main/docs/app-contract.md; use the
+`twomes-hosting` MCP to check and deploy.
 
-```bash
-ssh ssh.zanviq.dev 'cd ~/zanviq-homepage && git pull && docker compose up -d --build'
-```
-
-Only touch this compose project — the Pi runs other services in the same
-Docker daemon. Verify with `curl https://www.zanviq.dev/...` afterwards.
+- Pushing to `main` triggers a webhook deploy (auto_deploy on, auto_rollback on).
+  Don't report "pushed" as "deployed" — confirm with
+  `app_status("homepage")` / `wait_deployment`, then `curl https://www.zanviq.dev/api/health`.
+- Manual redeploy: `deploy_and_wait(slug="homepage")`; rollback with
+  `deploy(slug, commit_sha=<last good>)`.
+- Env vars (`ADMIN_*`, `JWT_SECRET`, `GEMINI_API_KEY`, `DATA_DIR`) live in the
+  platform: `set_env("homepage", {...})`, applied from the next deploy. Never
+  commit `.env`.
+- Don't add `cloudflared`, `ports:` or `container_name` to the compose file.
+- The old `zanviq-homepage` compose project on the Pi (with its own
+  cloudflared) was stopped, not removed; don't start it again.
 
 Frontend: `node node_modules/next/dist/bin/next build` in `frontend/` (npx is
 broken in this Windows shell). Local Python isn't set up; backend is checked
